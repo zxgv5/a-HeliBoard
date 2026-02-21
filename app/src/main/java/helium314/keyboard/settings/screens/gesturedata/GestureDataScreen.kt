@@ -5,6 +5,7 @@ import android.content.Context
 import android.view.inputmethod.InputMethodManager
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -36,7 +37,9 @@ import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
@@ -68,9 +71,11 @@ import androidx.compose.ui.text.intl.LocaleList
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.DialogProperties
 import com.android.inputmethod.latin.BinaryDictionary
 import helium314.keyboard.compat.locale
 import helium314.keyboard.keyboard.Keyboard
+import helium314.keyboard.latin.AppsManager
 import helium314.keyboard.latin.NgramContext
 import helium314.keyboard.latin.R
 import helium314.keyboard.latin.SingleDictionaryFacilitator
@@ -92,11 +97,17 @@ import helium314.keyboard.latin.utils.UncachedInputMethodManagerUtils
 import helium314.keyboard.latin.utils.WordData
 import helium314.keyboard.latin.utils.dictTestImeOption
 import helium314.keyboard.latin.utils.gestureDataActiveFacilitator
+import helium314.keyboard.latin.utils.getAppIgnoreList
 import helium314.keyboard.latin.utils.getExportedActiveDeletionCount
 import helium314.keyboard.latin.utils.getSecondaryLocales
+import helium314.keyboard.latin.utils.getWordIgnoreList
 import helium314.keyboard.latin.utils.locale
+import helium314.keyboard.latin.utils.setAppIgnoreList
+import helium314.keyboard.latin.utils.setWordIgnoreList
+import helium314.keyboard.settings.DeleteButton
 import helium314.keyboard.settings.DropDownField
 import helium314.keyboard.settings.NextScreenIcon
+import helium314.keyboard.settings.SettingsDestination
 import helium314.keyboard.settings.Theme
 import helium314.keyboard.settings.dialogs.ConfirmationDialog
 import helium314.keyboard.settings.dialogs.InfoDialog
@@ -411,7 +422,7 @@ fun GestureDataScreen(
                 InfoDialog(AnnotatedString.fromHtml(stringResource(R.string.gesture_data_active_description, Links.DICTIONARY_URL))) { showActiveInfoDialog = false }
             Spacer(Modifier.height(12.dp))
             // PassiveGathering & Review are not finished and will be completed + enabled later
-/*
+
             HorizontalDivider()
             PassiveGathering()
             Spacer(Modifier.height(12.dp))
@@ -420,7 +431,6 @@ fun GestureDataScreen(
             TextButton(onClick = { SettingsDestination.navigateTo(SettingsDestination.DataReview) }) {
                 Text(stringResource(R.string.gesture_data_review_screen_title))
             }
- */
         }
     }
     // showing at top left in preview, but correctly on device
@@ -555,6 +565,147 @@ private fun BottomBar(hasWords: Boolean, onDeleted: () -> Unit) {
 fun ButtonWithText(text: String, modifier: Modifier = Modifier, enabled: Boolean = true, onClick: () -> Unit) {
     Button(onClick, modifier, enabled) {
         Text(text)
+    }
+}
+
+@Composable
+private fun PassiveGathering() {
+    val ctx = LocalContext.current
+    Text("passive gathering description") // full description in a popup?
+    var passiveGathering by remember { mutableStateOf(false) } // todo (when implemented): read from setting
+    var showExcludedWordsDialog by remember { mutableStateOf(false) }
+    var showExcludedAppsDialog by remember { mutableStateOf(false) }
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween,
+        modifier = Modifier
+            .clickable { passiveGathering = !passiveGathering }
+            .fillMaxWidth()
+    ) {
+        Text("passive gathering")
+        Switch(passiveGathering, { passiveGathering = it })
+    }
+    TextButton({ showExcludedWordsDialog = true }) {
+        Text("manage excluded words")
+    }
+    TextButton({ showExcludedAppsDialog = true }) {
+        Text("manage excluded applications")
+    }
+    if (showExcludedAppsDialog) {
+        // todo: inverted mode where apps explicitly need to be enabled?
+        var ignorePackages by remember { mutableStateOf(getAppIgnoreList(ctx)) }
+        var packagesAndNames by remember { mutableStateOf(
+            AppsManager(ctx).getPackagesAndNames()
+                .sortedWith( compareBy({ it.first !in ignorePackages }, { it.second.lowercase() }))
+        ) }
+        var filter by remember { mutableStateOf(TextFieldValue()) }
+        val scroll = rememberScrollState()
+        // todo: load app list in background on entering the screen (just show nothing / please wait until loaded)
+        ThreeButtonAlertDialog(
+            title = { Text("select apps to exclude from passive gathering") },
+            onDismissRequest = { showExcludedAppsDialog = false },
+            content = { Column {
+                TextField(
+                    value = filter,
+                    onValueChange = { filter = it },
+                    singleLine = true,
+                    label = { Text("filter") },
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search)
+                )
+                Spacer(Modifier.height(10.dp))
+                Column(
+                    modifier = Modifier.verticalScroll(scroll),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    packagesAndNames.filter {
+                        if (filter.text.lowercase() == filter.text)
+                            filter.text in it.first || filter.text in it.second.lowercase()
+                        else
+                            filter.text in it.second
+                    }.map { (packag, name) ->
+                        val ignored = packag in ignorePackages
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    ignorePackages = if (ignored) ignorePackages - packag
+                                    else ignorePackages + packag
+                                }
+                        ) {
+                            CompositionLocalProvider(
+                                LocalTextStyle provides MaterialTheme.typography.bodyLarge
+                            ) {
+                                Text(name)
+                            }
+                            CompositionLocalProvider(
+                                LocalTextStyle provides MaterialTheme.typography.bodyMedium
+                            ) {
+                                Text(
+                                    packag + ", ${if (ignored) "ignored" else "used"}",
+                                    color = if (ignored) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
+                                )
+                            }
+                        }
+                    }
+                }
+            } },
+            onConfirmed = {
+                setAppIgnoreList(ctx, ignorePackages)
+            },
+            confirmButtonText = stringResource(android.R.string.ok),
+            properties = DialogProperties(dismissOnClickOutside = false)
+        )
+    }
+    if (showExcludedWordsDialog) {
+        var ignoreWords by remember { mutableStateOf(getWordIgnoreList(ctx)) }
+        var newWord by remember { mutableStateOf(TextFieldValue()) }
+        val scroll = rememberScrollState()
+        fun addWord() {
+            if (newWord.text.isNotBlank())
+                ignoreWords += newWord.text.trim()
+            newWord = TextFieldValue()
+        }
+        ThreeButtonAlertDialog(
+            onDismissRequest = { showExcludedWordsDialog = false },
+            content = { Column(Modifier.verticalScroll(scroll)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    TextField(
+                        value = newWord,
+                        onValueChange = { newWord = it},
+                        modifier = Modifier.weight(1f),
+                        singleLine = true,
+                        label = { Text("add new word") },
+                        keyboardActions = KeyboardActions { addWord() }
+                    )
+                    IconButton(
+                        { addWord() },
+                        Modifier.weight(0.2f)) {
+                        Icon(painterResource(R.drawable.ic_plus), stringResource(R.string.add))
+                    }
+                }
+                CompositionLocalProvider(
+                    LocalTextStyle provides MaterialTheme.typography.bodyLarge
+                ) {
+                    ignoreWords.map { word ->
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text(word)
+                            DeleteButton { ignoreWords = ignoreWords.filterNot { word == it }.toSortedSet() }
+                        }
+                    }
+                }
+            } },
+            onConfirmed = {
+                addWord()
+                setWordIgnoreList(ctx, ignoreWords)
+                GestureDataDao.getInstance(ctx)?.deletePassiveWords(ignoreWords)
+            },
+            confirmButtonText = stringResource(android.R.string.ok),
+            properties = DialogProperties(dismissOnClickOutside = false)
+        )
     }
 }
 

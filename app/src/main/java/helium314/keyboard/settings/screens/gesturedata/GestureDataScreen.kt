@@ -39,7 +39,6 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
@@ -97,12 +96,14 @@ import helium314.keyboard.latin.utils.UncachedInputMethodManagerUtils
 import helium314.keyboard.latin.utils.WordData
 import helium314.keyboard.latin.utils.dictTestImeOption
 import helium314.keyboard.latin.utils.gestureDataActiveFacilitator
-import helium314.keyboard.latin.utils.getAppIgnoreList
+import helium314.keyboard.latin.utils.getAppExclusionList
+import helium314.keyboard.latin.utils.getAppIgnoreByDefault
 import helium314.keyboard.latin.utils.getExportedActiveDeletionCount
 import helium314.keyboard.latin.utils.getSecondaryLocales
 import helium314.keyboard.latin.utils.getWordIgnoreList
 import helium314.keyboard.latin.utils.locale
-import helium314.keyboard.latin.utils.setAppIgnoreList
+import helium314.keyboard.latin.utils.setAppExclusionList
+import helium314.keyboard.latin.utils.setAppIgnoreByDefault
 import helium314.keyboard.latin.utils.setWordIgnoreList
 import helium314.keyboard.settings.DeleteButton
 import helium314.keyboard.settings.DropDownField
@@ -421,15 +422,15 @@ fun GestureDataScreen(
             if (showActiveInfoDialog)
                 InfoDialog(AnnotatedString.fromHtml(stringResource(R.string.gesture_data_active_description, Links.DICTIONARY_URL))) { showActiveInfoDialog = false }
             Spacer(Modifier.height(12.dp))
-            // PassiveGathering & Review are not finished and will be completed + enabled later
 
-            HorizontalDivider()
-            PassiveGathering()
-            Spacer(Modifier.height(12.dp))
-            HorizontalDivider()
-            // maybe move the review screen content in here if we have enough space (but landscape mode will be bad)
-            TextButton(onClick = { SettingsDestination.navigateTo(SettingsDestination.DataReview) }) {
-                Text(stringResource(R.string.gesture_data_review_screen_title))
+            if (!activeGathering) {
+                HorizontalDivider()
+                PassiveGathering()
+                Spacer(Modifier.height(12.dp))
+                // maybe move the review screen content in here if we have enough space (but landscape mode will be bad)
+                ButtonWithText(stringResource(R.string.gesture_data_review_screen_title), Modifier.fillMaxWidth()) {
+                    SettingsDestination.navigateTo(SettingsDestination.DataReview)
+                }
             }
         }
     }
@@ -571,8 +572,8 @@ fun ButtonWithText(text: String, modifier: Modifier = Modifier, enabled: Boolean
 @Composable
 private fun PassiveGathering() {
     val ctx = LocalContext.current
-    Text("passive gathering description") // full description in a popup?
     var passiveGathering by remember { mutableStateOf(false) } // todo (when implemented): read from setting
+    var showInfoDialog by remember { mutableStateOf(false) }
     var showExcludedWordsDialog by remember { mutableStateOf(false) }
     var showExcludedAppsDialog by remember { mutableStateOf(false) }
     Row(
@@ -582,29 +583,35 @@ private fun PassiveGathering() {
             .clickable { passiveGathering = !passiveGathering }
             .fillMaxWidth()
     ) {
-        Text("passive gathering")
+        Text("passive data gathering")
         Switch(passiveGathering, { passiveGathering = it })
     }
-    TextButton({ showExcludedWordsDialog = true }) {
-        Text("manage excluded words")
-    }
-    TextButton({ showExcludedAppsDialog = true }) {
-        Text("manage excluded applications")
+    ButtonWithText("show details", Modifier.fillMaxWidth()) { showInfoDialog = true }
+    ButtonWithText("manage excluded words", Modifier.fillMaxWidth()) { showExcludedWordsDialog = true }
+    ButtonWithText("manage excluded applications", Modifier.fillMaxWidth()) { showExcludedAppsDialog = true }
+    if (showInfoDialog) {
+        InfoDialog("infos about passive data gathering") { showInfoDialog = false }
     }
     if (showExcludedAppsDialog) {
         // todo: inverted mode where apps explicitly need to be enabled?
-        var ignorePackages by remember { mutableStateOf(getAppIgnoreList(ctx)) }
+        // just a single switch that flips the meaning of inclusions, calls setAppIgnoreByDefault
+        var defaultIgnore by remember { mutableStateOf(getAppIgnoreByDefault(ctx)) }
+        var excludedPackages by remember { mutableStateOf(getAppExclusionList(ctx)) }
         var packagesAndNames by remember { mutableStateOf(
             AppsManager(ctx).getPackagesAndNames()
-                .sortedWith( compareBy({ it.first !in ignorePackages }, { it.second.lowercase() }))
+                .sortedWith( compareBy({ it.first !in excludedPackages }, { it.second.lowercase() }))
         ) }
         var filter by remember { mutableStateOf(TextFieldValue()) }
         val scroll = rememberScrollState()
-        // todo: load app list in background on entering the screen (just show nothing / please wait until loaded)
+        // todo: load app list in background on entering the screen (just show nothing / "please wait" until loaded)
         ThreeButtonAlertDialog(
             title = { Text("select apps to exclude from passive gathering") },
             onDismissRequest = { showExcludedAppsDialog = false },
             content = { Column {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
+                    Text("ignore by default")
+                    Switch(checked = defaultIgnore, onCheckedChange = { defaultIgnore = it; setAppIgnoreByDefault(ctx, it) })
+                }
                 TextField(
                     value = filter,
                     onValueChange = { filter = it },
@@ -623,13 +630,15 @@ private fun PassiveGathering() {
                         else
                             filter.text in it.second
                     }.map { (packag, name) ->
-                        val ignored = packag in ignorePackages
+                        val ignored = if (defaultIgnore) packag !in excludedPackages else packag in excludedPackages
+                        // todo: app icon on the left
+                        // todo: instead of text use some icon to clarify ignored / used
                         Column(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clickable {
-                                    ignorePackages = if (ignored) ignorePackages - packag
-                                    else ignorePackages + packag
+                                    excludedPackages = if (ignored) excludedPackages - packag
+                                    else excludedPackages + packag
                                 }
                         ) {
                             CompositionLocalProvider(
@@ -650,7 +659,7 @@ private fun PassiveGathering() {
                 }
             } },
             onConfirmed = {
-                setAppIgnoreList(ctx, ignorePackages)
+                setAppExclusionList(ctx, excludedPackages)
             },
             confirmButtonText = stringResource(android.R.string.ok),
             properties = DialogProperties(dismissOnClickOutside = false)

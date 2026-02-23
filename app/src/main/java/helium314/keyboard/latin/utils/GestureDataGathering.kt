@@ -58,13 +58,25 @@ fun getWordIgnoreList(context: Context): Set<String> {
     return Json.decodeFromString<List<String>>(json).toSortedSet(compareBy(String.CASE_INSENSITIVE_ORDER) { it })
 }
 
-fun setAppIgnoreList(context: Context, list: Collection<String>) {
+fun setAppExclusionList(context: Context, list: Collection<String>) {
     context.prefs().edit { putString(PREF_APP_EXCLUSIONS, list.joinToString(",")) }
 }
 
-fun getAppIgnoreList(context: Context): List<String> {
+fun getAppExclusionList(context: Context): List<String> {
     val string = context.prefs().getString(PREF_APP_EXCLUSIONS, "") ?: ""
     return string.split(",").filterNot { it.isEmpty() }
+}
+
+fun setAppIgnoreByDefault(context: Context, value: Boolean) =
+    context.prefs().edit { putBoolean(PREF_APP_EXCLUSIONS_IGNORE_BY_DEFAULT, value) }
+
+fun getAppIgnoreByDefault(context: Context) =
+    context.prefs().getBoolean(PREF_APP_EXCLUSIONS_IGNORE_BY_DEFAULT, false)
+
+fun isForbiddenForDataGathering(packageName: String, context: Context): Boolean {
+    val exclusions = getAppExclusionList(context)
+    return if (getAppIgnoreByDefault(context)) packageName !in exclusions
+    else packageName in exclusions
 }
 
 fun addExportedActiveDeletionCount(context: Context, count: Int) {
@@ -144,6 +156,7 @@ fun showEndNotificationIfNecessary(context: Context) {
 
 private const val PREF_WORD_EXCLUSIONS = "gesture_data_word_exclusions"
 private const val PREF_APP_EXCLUSIONS = "gesture_data_app_exclusions"
+private const val PREF_APP_EXCLUSIONS_IGNORE_BY_DEFAULT = "gesture_data_app_exclusions_ignore_by_default"
 private const val PREF_DELETED_ACTIVE = "gesture_data_deleted_active_words"
 private const val PREF_PASSIVE_NOTIFY_COUNT = "gesture_data_passive_notify_count"
 private const val PREF_END_NOTIFICATION_LAST_SHOWN = "gesture_data_end_notification_shown"
@@ -249,8 +262,8 @@ class WordData(
             return true // active mode should be fine, the size check is just an addition in case there is a bug that sets the wrong mode or dictionary facilitator
         if (Settings.getValues().mIncognitoModeEnabled)
             return false // don't save in incognito mode
-        if (packageName in getAppIgnoreList(context))
-            return false // package ignored
+        if (isForbiddenForDataGathering(packageName, context))
+            return false // package ignored (we should never come here in this case, but better be safe)
         val inputAttributes = InputAttributes(keyboard.mId.mEditorInfo, false, "")
         val isEmailField = InputTypeUtils.isEmailVariation(inputAttributes.mInputType and InputType.TYPE_MASK_VARIATION)
         if (inputAttributes.mIsPasswordField || inputAttributes.mNoLearning || isEmailField)

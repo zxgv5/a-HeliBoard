@@ -2,9 +2,11 @@
 package helium314.keyboard.settings.screens.gesturedata
 
 import android.content.Context
+import android.graphics.drawable.Drawable
 import android.view.inputmethod.InputMethodManager
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -56,8 +58,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -71,6 +75,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogProperties
+import androidx.core.graphics.drawable.toBitmap
 import com.android.inputmethod.latin.BinaryDictionary
 import helium314.keyboard.compat.locale
 import helium314.keyboard.keyboard.Keyboard
@@ -95,6 +100,7 @@ import helium314.keyboard.latin.utils.SuggestionResults
 import helium314.keyboard.latin.utils.UncachedInputMethodManagerUtils
 import helium314.keyboard.latin.utils.WordData
 import helium314.keyboard.latin.utils.dictTestImeOption
+import helium314.keyboard.latin.utils.dpToPx
 import helium314.keyboard.latin.utils.gestureDataActiveFacilitator
 import helium314.keyboard.latin.utils.getAppExclusionList
 import helium314.keyboard.latin.utils.getAppIgnoreByDefault
@@ -592,15 +598,23 @@ private fun PassiveGathering() {
     if (showInfoDialog) {
         InfoDialog("infos about passive data gathering") { showInfoDialog = false }
     }
+    var packageInfos by remember { mutableStateOf(emptyList<Triple<String, String, Drawable?>>()) }
+    val scope = rememberCoroutineScope()
+    LaunchedEffect(packageInfos) {
+        if (packageInfos.isEmpty())
+            scope.launch { packageInfos = AppsManager(ctx).getPackagesWithNameAndIcon() }
+    }
     if (showExcludedAppsDialog) {
-        // todo: inverted mode where apps explicitly need to be enabled?
-        // just a single switch that flips the meaning of inclusions, calls setAppIgnoreByDefault
         var defaultIgnore by remember { mutableStateOf(getAppIgnoreByDefault(ctx)) }
         var excludedPackages by remember { mutableStateOf(getAppExclusionList(ctx)) }
-        var packagesAndNames by remember { mutableStateOf(
-            AppsManager(ctx).getPackagesAndNames()
+        var sortedPackagesAndNames by remember { mutableStateOf(
+            packageInfos
                 .sortedWith( compareBy({ it.first !in excludedPackages }, { it.second.lowercase() }))
         ) }
+        LaunchedEffect(packageInfos) {
+            sortedPackagesAndNames = packageInfos
+                .sortedWith( compareBy({ it.first !in excludedPackages }, { it.second.lowercase() }))
+        }
         var filter by remember { mutableStateOf(TextFieldValue()) }
         val scroll = rememberScrollState()
         // todo: load app list in background on entering the screen (just show nothing / "please wait" until loaded)
@@ -624,14 +638,13 @@ private fun PassiveGathering() {
                     modifier = Modifier.verticalScroll(scroll),
                     verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    packagesAndNames.filter {
+                    sortedPackagesAndNames.filter {
                         if (filter.text.lowercase() == filter.text)
                             filter.text in it.first || filter.text in it.second.lowercase()
                         else
                             filter.text in it.second
-                    }.map { (packag, name) ->
+                    }.map { (packag, name, icon) ->
                         val ignored = if (defaultIgnore) packag !in excludedPackages else packag in excludedPackages
-                        // todo: app icon on the left
                         // todo: instead of text use some icon to clarify ignored / used
                         Column(
                             modifier = Modifier
@@ -641,6 +654,11 @@ private fun PassiveGathering() {
                                     else excludedPackages + packag
                                 }
                         ) {
+                            // todo: app icon on the left
+                            if (icon != null) {
+                                val px = 32.dpToPx(LocalResources.current)
+                                Image(icon.toBitmap(px, px).asImageBitmap(), name)
+                            }
                             CompositionLocalProvider(
                                 LocalTextStyle provides MaterialTheme.typography.bodyLarge
                             ) {

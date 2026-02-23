@@ -52,6 +52,7 @@ fun setWordIgnoreList(context: Context, list: Collection<String>) {
     context.prefs().edit { putString(PREF_WORD_EXCLUSIONS, json) }
 }
 
+// todo: test whether ther should be a cache, or is performance ok?
 fun getWordIgnoreList(context: Context): Set<String> {
     val json = context.prefs().getString(PREF_WORD_EXCLUSIONS, "[]") ?: "[]"
     if (json.isEmpty()) return sortedSetOf()

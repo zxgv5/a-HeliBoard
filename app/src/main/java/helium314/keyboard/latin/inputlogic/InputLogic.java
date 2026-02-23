@@ -637,11 +637,15 @@ public final class InputLogic {
             inputTransaction.setDidAffectContents();
         }
         if (mWordComposer.isComposingWord()) {
-            // Check if we need to insert automatic space before starting to compose (e.g., after suggestion pickup)
-            // Only do this for the Khipro combiner
+            // Khipro auto-space after suggestion: when user picks a suggestion and starts composing the next word,
+            // insert space automatically, but skip it if the next character is punctuation (. , ; : ! ?) or word connector.
+            final int codePoint = event.getCodePoint();
+            final SettingsValues settingsValues = inputTransaction.getSettingsValues();
             if (SpaceState.PHANTOM == inputTransaction.getSpaceState()
-                    && "bn_khipro".equals(mWordComposer.getCombiningSpec())) {
-                insertAutomaticSpaceIfOptionsAndTextAllow(inputTransaction.getSettingsValues());
+                    && "bn_khipro".equals(mWordComposer.getCombiningSpec())
+                    && !settingsValues.isWordConnector(codePoint)
+                    && !settingsValues.isUsuallyFollowedBySpace(codePoint)) {
+                insertAutomaticSpaceIfOptionsAndTextAllow(settingsValues);
                 mSpaceState = SpaceState.NONE;
             }
             setComposingTextInternal(mWordComposer.getTypedWord(), 1);
@@ -803,6 +807,10 @@ public final class InputLogic {
                 break;
             case KeyCode.TIMESTAMP:
                 mLatinIME.onTextInput(TimestampKt.getTimestamp(mLatinIME));
+                break;
+            case KeyCode.EMOJI_SEARCH:
+                commitTyped(Settings.getValues(), LastComposedWord.NOT_A_SEPARATOR);
+                mLatinIME.launchEmojiSearch();
                 break;
             case KeyCode.SEND_INTENT_ONE, KeyCode.SEND_INTENT_TWO, KeyCode.SEND_INTENT_THREE:
                 IntentUtils.handleSendIntentKey(mLatinIME, event.getKeyCode());
@@ -2750,8 +2758,7 @@ public final class InputLogic {
     }
 
     public void updateEmojiDictionary(Locale locale) {
-        //todo: disable if in full emoji search mode
-        if (Settings.getValues().mInlineEmojiSearch && Settings.getValues().needsToLookupSuggestions()) {
+        if (Settings.getValues().mInlineEmojiSearch && Settings.getValues().needsToLookupSuggestions() && ! mLatinIME.isEmojiSearch()) {
             if (mEmojiDictionaryFacilitator == null || ! mEmojiDictionaryFacilitator.isForLocale(locale)) {
                 closeEmojiDictionary();
                 var dictFile = DictionaryInfoUtils.getCachedDictForLocaleAndType(locale, "emoji", mLatinIME);

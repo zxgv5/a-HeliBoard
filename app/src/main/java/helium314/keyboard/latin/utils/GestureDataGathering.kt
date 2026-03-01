@@ -53,12 +53,21 @@ fun isPassiveGatheringEnabled(prefs: SharedPreferences) = prefs.getBoolean(PREF_
 fun setPassiveGatheringEnabled(prefs: SharedPreferences, enabled: Boolean) =
     prefs.edit { putBoolean(PREF_PASSIVE_ENABLED, enabled) }
 
+fun isPassiveGatheringUsed(prefs: SharedPreferences): Boolean {
+    // depending on app and input type
+    // this should also be responsible for showing some indicator (probably goes to settingsValues)
+
+    // in suggest we get the suggestions, but have no way of guessing the wanted word
+    // but if we try get them later (in inputLogic) the results are modified
+    // -> try including raw results? would probably be best
+}
+
 fun setWordIgnoreList(context: Context, list: Collection<String>) {
     val json = Json.encodeToString(list)
     context.prefs().edit { putString(PREF_WORD_EXCLUSIONS, json) }
 }
 
-// todo: test whether ther should be a cache, or is performance ok?
+// todo: test whether there should be a cache, or is performance ok?
 fun getWordIgnoreList(context: Context): Set<String> {
     val json = context.prefs().getString(PREF_WORD_EXCLUSIONS, "[]") ?: "[]"
     if (json.isEmpty()) return sortedSetOf()

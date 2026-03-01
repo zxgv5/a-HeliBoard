@@ -2,12 +2,9 @@
 package helium314.keyboard.settings.screens.gesturedata
 
 import android.content.Context
-import android.graphics.drawable.Drawable
 import android.view.inputmethod.InputMethodManager
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -39,7 +36,6 @@ import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TopAppBar
@@ -58,10 +54,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -74,12 +68,9 @@ import androidx.compose.ui.text.intl.LocaleList
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.DialogProperties
-import androidx.core.graphics.drawable.toBitmap
 import com.android.inputmethod.latin.BinaryDictionary
 import helium314.keyboard.compat.locale
 import helium314.keyboard.keyboard.Keyboard
-import helium314.keyboard.latin.AppsManager
 import helium314.keyboard.latin.NgramContext
 import helium314.keyboard.latin.R
 import helium314.keyboard.latin.SingleDictionaryFacilitator
@@ -91,7 +82,6 @@ import helium314.keyboard.latin.common.LocaleUtils.constructLocale
 import helium314.keyboard.latin.dictionary.Dictionary
 import helium314.keyboard.latin.settings.Settings
 import helium314.keyboard.latin.utils.ChecksumCalculator
-import helium314.keyboard.latin.utils.DeleteButton
 import helium314.keyboard.latin.utils.DictionaryInfoUtils
 import helium314.keyboard.latin.utils.GestureDataDao
 import helium314.keyboard.latin.utils.NextScreenIcon
@@ -103,17 +93,10 @@ import helium314.keyboard.latin.utils.Theme
 import helium314.keyboard.latin.utils.UncachedInputMethodManagerUtils
 import helium314.keyboard.latin.utils.WordData
 import helium314.keyboard.latin.utils.dictTestImeOption
-import helium314.keyboard.latin.utils.dpToPx
 import helium314.keyboard.latin.utils.gestureDataActiveFacilitator
-import helium314.keyboard.latin.utils.getAppExclusionList
-import helium314.keyboard.latin.utils.getAppIgnoreByDefault
 import helium314.keyboard.latin.utils.getExportedActiveDeletionCount
 import helium314.keyboard.latin.utils.getSecondaryLocales
-import helium314.keyboard.latin.utils.getWordIgnoreList
 import helium314.keyboard.latin.utils.locale
-import helium314.keyboard.latin.utils.setAppExclusionList
-import helium314.keyboard.latin.utils.setAppIgnoreByDefault
-import helium314.keyboard.latin.utils.setWordIgnoreList
 import helium314.keyboard.settings.DropDownField
 import helium314.keyboard.settings.SettingsDestination
 import helium314.keyboard.settings.dialogs.ConfirmationDialog

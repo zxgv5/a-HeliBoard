@@ -62,12 +62,12 @@ import androidx.compose.ui.unit.dp
 import helium314.keyboard.latin.R
 import helium314.keyboard.latin.utils.GestureDataDao
 import helium314.keyboard.latin.utils.GestureDataInfo
+import helium314.keyboard.latin.utils.Theme
 import helium314.keyboard.latin.utils.getWordIgnoreList
-import helium314.keyboard.settings.Theme
+import helium314.keyboard.latin.utils.previewDark
 import helium314.keyboard.settings.dialogs.ConfirmationDialog
 import helium314.keyboard.settings.dialogs.ThreeButtonAlertDialog
 import helium314.keyboard.settings.isWideScreen
-import helium314.keyboard.settings.previewDark
 import kotlinx.coroutines.launch
 import java.text.DateFormat
 import java.util.Date

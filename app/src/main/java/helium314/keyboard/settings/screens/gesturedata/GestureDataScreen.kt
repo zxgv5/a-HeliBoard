@@ -91,6 +91,7 @@ import helium314.keyboard.latin.common.LocaleUtils.constructLocale
 import helium314.keyboard.latin.dictionary.Dictionary
 import helium314.keyboard.latin.settings.Settings
 import helium314.keyboard.latin.utils.ChecksumCalculator
+import helium314.keyboard.latin.utils.DeleteButton
 import helium314.keyboard.latin.utils.DictionaryInfoUtils
 import helium314.keyboard.latin.utils.GestureDataDao
 import helium314.keyboard.latin.utils.NextScreenIcon
@@ -113,11 +114,8 @@ import helium314.keyboard.latin.utils.locale
 import helium314.keyboard.latin.utils.setAppExclusionList
 import helium314.keyboard.latin.utils.setAppIgnoreByDefault
 import helium314.keyboard.latin.utils.setWordIgnoreList
-import helium314.keyboard.settings.DeleteButton
 import helium314.keyboard.settings.DropDownField
-import helium314.keyboard.settings.NextScreenIcon
 import helium314.keyboard.settings.SettingsDestination
-import helium314.keyboard.settings.Theme
 import helium314.keyboard.settings.dialogs.ConfirmationDialog
 import helium314.keyboard.settings.dialogs.InfoDialog
 import helium314.keyboard.settings.dialogs.ThreeButtonAlertDialog
@@ -433,7 +431,7 @@ fun GestureDataScreen(
 
             if (!activeGathering) {
                 HorizontalDivider()
-                PassiveGathering()
+                PassiveGatheringSettings()
                 Spacer(Modifier.height(12.dp))
                 // maybe move the review screen content in here if we have enough space (but landscape mode will be bad)
                 ButtonWithText(stringResource(R.string.gesture_data_review_screen_title), Modifier.fillMaxWidth()) {
@@ -574,167 +572,6 @@ private fun BottomBar(hasWords: Boolean, onDeleted: () -> Unit) {
 fun ButtonWithText(text: String, modifier: Modifier = Modifier, enabled: Boolean = true, onClick: () -> Unit) {
     Button(onClick, modifier, enabled) {
         Text(text)
-    }
-}
-
-@Composable
-private fun PassiveGathering() {
-    val ctx = LocalContext.current
-    var passiveGathering by remember { mutableStateOf(false) } // todo (when implemented): read from setting
-    var showInfoDialog by remember { mutableStateOf(false) }
-    var showExcludedWordsDialog by remember { mutableStateOf(false) }
-    var showExcludedAppsDialog by remember { mutableStateOf(false) }
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween,
-        modifier = Modifier
-            .clickable { passiveGathering = !passiveGathering }
-            .fillMaxWidth()
-    ) {
-        Text("passive data gathering")
-        Switch(passiveGathering, { passiveGathering = it })
-    }
-    ButtonWithText("show details", Modifier.fillMaxWidth()) { showInfoDialog = true }
-    ButtonWithText("manage excluded words", Modifier.fillMaxWidth()) { showExcludedWordsDialog = true }
-    ButtonWithText("manage excluded applications", Modifier.fillMaxWidth()) { showExcludedAppsDialog = true }
-    if (showInfoDialog) {
-        InfoDialog("infos about passive data gathering") { showInfoDialog = false }
-    }
-    var packageInfos by remember { mutableStateOf(emptyList<Triple<String, String, Drawable?>>()) }
-    val scope = rememberCoroutineScope()
-    LaunchedEffect(packageInfos) {
-        if (packageInfos.isEmpty())
-            scope.launch { packageInfos = AppsManager(ctx).getPackagesWithNameAndIcon() }
-    }
-    if (showExcludedAppsDialog) {
-        var defaultIgnore by remember { mutableStateOf(getAppIgnoreByDefault(ctx)) }
-        var excludedPackages by remember { mutableStateOf(getAppExclusionList(ctx)) }
-        var sortedPackagesAndNames by remember { mutableStateOf(
-            packageInfos
-                .sortedWith( compareBy({ it.first !in excludedPackages }, { it.second.lowercase() }))
-        ) }
-        LaunchedEffect(packageInfos) {
-            sortedPackagesAndNames = packageInfos
-                .sortedWith( compareBy({ it.first !in excludedPackages }, { it.second.lowercase() }))
-        }
-        var filter by remember { mutableStateOf(TextFieldValue()) }
-        val scroll = rememberScrollState()
-        // todo: load app list in background on entering the screen (just show nothing / "please wait" until loaded)
-        ThreeButtonAlertDialog(
-            title = { Text("select apps to exclude from passive gathering") },
-            onDismissRequest = { showExcludedAppsDialog = false },
-            content = { Column {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
-                    Text("ignore by default")
-                    Switch(checked = defaultIgnore, onCheckedChange = { defaultIgnore = it; setAppIgnoreByDefault(ctx, it) })
-                }
-                TextField(
-                    value = filter,
-                    onValueChange = { filter = it },
-                    singleLine = true,
-                    label = { Text("filter") },
-                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search)
-                )
-                Spacer(Modifier.height(10.dp))
-                Column(
-                    modifier = Modifier.verticalScroll(scroll),
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    sortedPackagesAndNames.filter {
-                        if (filter.text.lowercase() == filter.text)
-                            filter.text in it.first || filter.text in it.second.lowercase()
-                        else
-                            filter.text in it.second
-                    }.map { (packag, name, icon) ->
-                        val ignored = if (defaultIgnore) packag !in excludedPackages else packag in excludedPackages
-                        // todo: instead of text use some icon to clarify ignored / used
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable {
-                                    excludedPackages = if (ignored) excludedPackages - packag
-                                    else excludedPackages + packag
-                                }
-                        ) {
-                            // todo: app icon on the left
-                            if (icon != null) {
-                                val px = 32.dpToPx(LocalResources.current)
-                                Image(icon.toBitmap(px, px).asImageBitmap(), name)
-                            }
-                            CompositionLocalProvider(
-                                LocalTextStyle provides MaterialTheme.typography.bodyLarge
-                            ) {
-                                Text(name)
-                            }
-                            CompositionLocalProvider(
-                                LocalTextStyle provides MaterialTheme.typography.bodyMedium
-                            ) {
-                                Text(
-                                    packag + ", ${if (ignored) "ignored" else "used"}",
-                                    color = if (ignored) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
-                                )
-                            }
-                        }
-                    }
-                }
-            } },
-            onConfirmed = {
-                setAppExclusionList(ctx, excludedPackages)
-            },
-            confirmButtonText = stringResource(android.R.string.ok),
-            properties = DialogProperties(dismissOnClickOutside = false)
-        )
-    }
-    if (showExcludedWordsDialog) {
-        var ignoreWords by remember { mutableStateOf(getWordIgnoreList(ctx)) }
-        var newWord by remember { mutableStateOf(TextFieldValue()) }
-        val scroll = rememberScrollState()
-        fun addWord() {
-            if (newWord.text.isNotBlank())
-                ignoreWords += newWord.text.trim()
-            newWord = TextFieldValue()
-        }
-        ThreeButtonAlertDialog(
-            onDismissRequest = { showExcludedWordsDialog = false },
-            content = { Column(Modifier.verticalScroll(scroll)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    TextField(
-                        value = newWord,
-                        onValueChange = { newWord = it},
-                        modifier = Modifier.weight(1f),
-                        singleLine = true,
-                        label = { Text("add new word") },
-                        keyboardActions = KeyboardActions { addWord() }
-                    )
-                    IconButton(
-                        { addWord() },
-                        Modifier.weight(0.2f)) {
-                        Icon(painterResource(R.drawable.ic_plus), stringResource(R.string.add))
-                    }
-                }
-                CompositionLocalProvider(
-                    LocalTextStyle provides MaterialTheme.typography.bodyLarge
-                ) {
-                    ignoreWords.map { word ->
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text(word)
-                            DeleteButton { ignoreWords = ignoreWords.filterNot { word == it }.toSortedSet() }
-                        }
-                    }
-                }
-            } },
-            onConfirmed = {
-                addWord()
-                setWordIgnoreList(ctx, ignoreWords)
-                GestureDataDao.getInstance(ctx)?.deletePassiveWords(ignoreWords)
-            },
-            confirmButtonText = stringResource(android.R.string.ok),
-            properties = DialogProperties(dismissOnClickOutside = false)
-        )
     }
 }
 

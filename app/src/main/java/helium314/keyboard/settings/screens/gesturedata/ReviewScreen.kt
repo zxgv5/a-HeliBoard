@@ -1,9 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 package helium314.keyboard.settings.screens.gesturedata
 
-// not actually on use, unfinished
-// will be continued when implementing passive data gathering
-
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement

@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-only
 package helium314.keyboard.settings.screens.gesturedata
 
 import android.graphics.drawable.Drawable
@@ -52,21 +53,27 @@ import helium314.keyboard.latin.utils.dpToPx
 import helium314.keyboard.latin.utils.getAppExclusionList
 import helium314.keyboard.latin.utils.getAppIgnoreByDefault
 import helium314.keyboard.latin.utils.getWordIgnoreList
+import helium314.keyboard.latin.utils.isPassiveGatheringEnabled
+import helium314.keyboard.latin.utils.prefs
 import helium314.keyboard.latin.utils.setAppExclusionList
 import helium314.keyboard.latin.utils.setAppIgnoreByDefault
+import helium314.keyboard.latin.utils.setPassiveGatheringEnabled
 import helium314.keyboard.latin.utils.setWordIgnoreList
 import helium314.keyboard.settings.dialogs.InfoDialog
 import helium314.keyboard.settings.dialogs.ThreeButtonAlertDialog
 import kotlinx.coroutines.launch
 import kotlin.collections.plus
 
+// functionality for gesture data gathering as part of the NLNet Project https://nlnet.nl/project/GestureTyping/
+// will be removed once the project is finished
+
 @Composable
 fun PassiveGatheringSettings() {
     val ctx = LocalContext.current
-    var passiveGathering by remember { mutableStateOf(false) } // todo (when implemented): read from setting
+    var passiveGathering by remember { mutableStateOf(isPassiveGatheringEnabled(ctx.prefs())) }
     var showInfoDialog by remember { mutableStateOf(false) }
     var showExcludedWordsDialog by remember { mutableStateOf(false) }
-    var showExcludedAppsDialog by remember { mutableStateOf(false) }
+    var showIncludedAppsDialog by remember { mutableStateOf(false) }
     Row(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween,
@@ -74,12 +81,12 @@ fun PassiveGatheringSettings() {
             .clickable { passiveGathering = !passiveGathering }
             .fillMaxWidth()
     ) {
-        Text("passive data gathering") // todo
-        Switch(passiveGathering, { passiveGathering = it })
+        Text(stringResource(R.string.gesture_data_passive_gathering))
+        Switch(passiveGathering, { passiveGathering = it; setPassiveGatheringEnabled(ctx.prefs(), it) })
     }
-    ButtonWithText("show details", Modifier.fillMaxWidth()) { showInfoDialog = true } // todo
-    ButtonWithText("manage excluded words", Modifier.fillMaxWidth()) { showExcludedWordsDialog = true } // todo
-    ButtonWithText("manage excluded applications", Modifier.fillMaxWidth()) { showExcludedAppsDialog = true } // todo
+    ButtonWithText(stringResource(R.string.gesture_data_passive_gathering_info), Modifier.fillMaxWidth()) { showInfoDialog = true }
+    ButtonWithText(stringResource(R.string.gesture_data_passive_gathering_info_message), Modifier.fillMaxWidth()) { showExcludedWordsDialog = true }
+    ButtonWithText(stringResource(R.string.gesture_data_passive_apps_button), Modifier.fillMaxWidth()) { showIncludedAppsDialog = true }
     if (showInfoDialog) {
         InfoDialog("infos about passive data gathering") { showInfoDialog = false } // todo
     }
@@ -89,7 +96,7 @@ fun PassiveGatheringSettings() {
         if (packageInfos.isEmpty())
             scope.launch { packageInfos = AppsManager(ctx).getPackagesWithNameAndIcon() }
     }
-    if (showExcludedAppsDialog) {
+    if (showIncludedAppsDialog) {
         var defaultIgnore by remember { mutableStateOf(getAppIgnoreByDefault(ctx)) }
         var excludedPackages by remember { mutableStateOf(getAppExclusionList(ctx)) }
         var sortedPackagesAndNames by remember { mutableStateOf(
@@ -103,7 +110,7 @@ fun PassiveGatheringSettings() {
         var filter by remember { mutableStateOf(TextFieldValue()) }
         ThreeButtonAlertDialog(
             title = { Text(stringResource(R.string.gesture_data_passive_apps)) },
-            onDismissRequest = { showExcludedAppsDialog = false },
+            onDismissRequest = { showIncludedAppsDialog = false },
             content = { Column {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
@@ -171,7 +178,7 @@ fun PassiveGatheringSettings() {
             properties = DialogProperties(dismissOnClickOutside = false)
         )
     }
-    if (showExcludedWordsDialog) {
+    if (showExcludedWordsDialog) { // todo: everything here
         var ignoreWords by remember { mutableStateOf(getWordIgnoreList(ctx)) }
         var newWord by remember { mutableStateOf(TextFieldValue()) }
         val scroll = rememberScrollState()

@@ -1075,6 +1075,18 @@ New dictionary:
     <!-- Button to go to gesture data gathering screen
      string will probably be removed once data gathering is finished (end of 2026 latest) -->
     <string name="gesture_data_take_me_there">Take me there</string>
+    <!-- Title for passive data gathering
+     string will probably be removed once data gathering is finished (end of 2026 latest) -->
+    <string name="gesture_data_passive_gathering">Passive data gathering</string>
+    <!-- Button for opening info dialog
+     string will probably be removed once data gathering is finished (end of 2026 latest) -->
+    <string name="gesture_data_passive_gathering_info">More information</string>
+    <!-- Info dialog message
+     string will probably be removed once data gathering is finished (end of 2026 latest) -->
+    <string name="gesture_data_passive_gathering_info_message">...</string>
+    <!-- Button for opening app selection for passive data gathering
+     string will probably be removed once data gathering is finished (end of 2026 latest) -->
+    <string name="gesture_data_passive_apps_button">Manage allowed apps</string>
     <!-- Text for app selection for passive data gathering
      string will probably be removed once data gathering is finished (end of 2026 latest) -->
     <string name="gesture_data_passive_apps">Select apps to include in passive data gathering</string>

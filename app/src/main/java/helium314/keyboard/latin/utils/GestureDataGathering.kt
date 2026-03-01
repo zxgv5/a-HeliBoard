@@ -3,6 +3,7 @@ package helium314.keyboard.latin.utils
 
 import android.content.ContentValues
 import android.content.Context
+import android.content.SharedPreferences
 import android.text.InputType
 import android.view.inputmethod.EditorInfo
 import androidx.compose.material3.Text
@@ -46,6 +47,11 @@ import kotlin.random.Random
 
 fun isInActiveGatheringMode(editorInfo: EditorInfo) =
     dictTestImeOption == editorInfo.privateImeOptions && gestureDataActiveFacilitator != null
+
+fun isPassiveGatheringEnabled(prefs: SharedPreferences) = prefs.getBoolean(PREF_PASSIVE_ENABLED, false)
+
+fun setPassiveGatheringEnabled(prefs: SharedPreferences, enabled: Boolean) =
+    prefs.edit { putBoolean(PREF_PASSIVE_ENABLED, enabled) }
 
 fun setWordIgnoreList(context: Context, list: Collection<String>) {
     val json = Json.encodeToString(list)
@@ -160,6 +166,7 @@ private const val PREF_APP_EXCLUSIONS = "gesture_data_app_exclusions"
 private const val PREF_APP_EXCLUSIONS_IGNORE_BY_DEFAULT = "gesture_data_app_exclusions_ignore_by_default"
 private const val PREF_DELETED_ACTIVE = "gesture_data_deleted_active_words"
 private const val PREF_PASSIVE_NOTIFY_COUNT = "gesture_data_passive_notify_count"
+private const val PREF_PASSIVE_ENABLED = "gesture_data_passive_gathering_enabled"
 private const val PREF_END_NOTIFICATION_LAST_SHOWN = "gesture_data_end_notification_shown"
 private const val PREF_SHOW_PROMOTION_DIALOG_NEXT = "gesture_data_show_promotion_dialog_next_time"
 private const val PREF_SHOW_REMINDER_DIALOG_NEXT = "gesture_data_show_reminder_dialog_next_time"
@@ -263,7 +270,9 @@ class WordData(
             return true // active mode should be fine, the size check is just an addition in case there is a bug that sets the wrong mode or dictionary facilitator
         if (Settings.getValues().mIncognitoModeEnabled)
             return false // don't save in incognito mode
-        if (isForbiddenForDataGathering(packageName, context))
+        if (!activeMode && !isPassiveGatheringEnabled(context.prefs()))
+            return false
+        if (!activeMode && isForbiddenForDataGathering(packageName, context))
             return false // package ignored (we should never come here in this case, but better be safe)
         val inputAttributes = InputAttributes(keyboard.mId.mEditorInfo, false, "")
         val isEmailField = InputTypeUtils.isEmailVariation(inputAttributes.mInputType and InputType.TYPE_MASK_VARIATION)

@@ -11,6 +11,8 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -72,14 +74,14 @@ fun PassiveGatheringSettings() {
             .clickable { passiveGathering = !passiveGathering }
             .fillMaxWidth()
     ) {
-        Text("passive data gathering")
+        Text("passive data gathering") // todo
         Switch(passiveGathering, { passiveGathering = it })
     }
-    ButtonWithText("show details", Modifier.fillMaxWidth()) { showInfoDialog = true }
-    ButtonWithText("manage excluded words", Modifier.fillMaxWidth()) { showExcludedWordsDialog = true }
-    ButtonWithText("manage excluded applications", Modifier.fillMaxWidth()) { showExcludedAppsDialog = true }
+    ButtonWithText("show details", Modifier.fillMaxWidth()) { showInfoDialog = true } // todo
+    ButtonWithText("manage excluded words", Modifier.fillMaxWidth()) { showExcludedWordsDialog = true } // todo
+    ButtonWithText("manage excluded applications", Modifier.fillMaxWidth()) { showExcludedAppsDialog = true } // todo
     if (showInfoDialog) {
-        InfoDialog("infos about passive data gathering") { showInfoDialog = false }
+        InfoDialog("infos about passive data gathering") { showInfoDialog = false } // todo
     }
     var packageInfos by remember { mutableStateOf(emptyList<Triple<String, String, Drawable?>>()) }
     val scope = rememberCoroutineScope()
@@ -99,33 +101,34 @@ fun PassiveGatheringSettings() {
                 .sortedWith( compareBy({ it.first !in excludedPackages }, { it.second.lowercase() }))
         }
         var filter by remember { mutableStateOf(TextFieldValue()) }
-        val scroll = rememberScrollState()
         ThreeButtonAlertDialog(
-            title = { Text("select apps to exclude from passive gathering") },
+            title = { Text(stringResource(R.string.gesture_data_passive_apps)) },
             onDismissRequest = { showExcludedAppsDialog = false },
             content = { Column {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
-                    Text("ignore by default")
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(stringResource(R.string.gesture_data_passive_apps_include_default))
                     Switch(checked = defaultIgnore, onCheckedChange = { defaultIgnore = it; setAppIgnoreByDefault(ctx, it) })
                 }
                 TextField(
                     value = filter,
                     onValueChange = { filter = it },
                     singleLine = true,
-                    label = { Text("filter") },
+                    label = { Text(stringResource(R.string.label_search_key)) },
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search)
                 )
                 Spacer(Modifier.height(10.dp))
-                Column( // make it lazy?
-                    modifier = Modifier.verticalScroll(scroll),
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    sortedPackagesAndNames.filter {
+                LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    val filtered = sortedPackagesAndNames.filter {
                         if (filter.text.lowercase() == filter.text)
                             filter.text in it.first || filter.text in it.second.lowercase()
                         else
                             filter.text in it.second
-                    }.map { (packageName, name, icon) ->
+                    }
+                    items(filtered, { it.first }) { (packageName, name, icon) ->
                         val ignored = if (defaultIgnore) packageName !in excludedPackages else packageName in excludedPackages
                         Row(Modifier
                             .fillMaxWidth()
@@ -142,22 +145,21 @@ fun PassiveGatheringSettings() {
                                     Image(icon.toBitmap(px, px).asImageBitmap(), name)
                                 }
                             }
-                            // todo: instead of text use some icon to clarify ignored / used
-                            Column {
-                                CompositionLocalProvider(
-                                    LocalTextStyle provides MaterialTheme.typography.bodyLarge
-                                ) {
+                            Column(Modifier.weight(1f)) {
+                                CompositionLocalProvider(LocalTextStyle provides MaterialTheme.typography.bodyLarge) {
                                     Text(name)
                                 }
-                                CompositionLocalProvider(
-                                    LocalTextStyle provides MaterialTheme.typography.bodyMedium
-                                ) {
+                                CompositionLocalProvider(LocalTextStyle provides MaterialTheme.typography.bodyMedium) {
                                     Text(
-                                        packageName + ", ${if (ignored) "ignored" else "used"}",
+                                        packageName,
                                         color = if (ignored) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
                                     )
                                 }
                             }
+                            if (ignored)
+                                Icon(painterResource(R.drawable.ic_close), "ignored", Modifier.size(32.dp), MaterialTheme.colorScheme.error)
+                            else
+                                Icon(painterResource(R.drawable.ic_setup_check), "included", Modifier.size(32.dp), MaterialTheme.colorScheme.primary)
                         }
                     }
                 }
@@ -187,7 +189,7 @@ fun PassiveGatheringSettings() {
                         onValueChange = { newWord = it},
                         modifier = Modifier.weight(1f),
                         singleLine = true,
-                        label = { Text("add new word") },
+                        label = { Text(stringResource(R.string.user_dict_add_word_button)) },
                         keyboardActions = KeyboardActions { addWord() }
                     )
                     IconButton(

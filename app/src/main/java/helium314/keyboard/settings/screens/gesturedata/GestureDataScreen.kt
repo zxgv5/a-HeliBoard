@@ -93,10 +93,12 @@ import helium314.keyboard.latin.settings.Settings
 import helium314.keyboard.latin.utils.ChecksumCalculator
 import helium314.keyboard.latin.utils.DictionaryInfoUtils
 import helium314.keyboard.latin.utils.GestureDataDao
+import helium314.keyboard.latin.utils.NextScreenIcon
 import helium314.keyboard.latin.utils.ScriptUtils
 import helium314.keyboard.latin.utils.SubtypeLocaleUtils
 import helium314.keyboard.latin.utils.SubtypeSettings
 import helium314.keyboard.latin.utils.SuggestionResults
+import helium314.keyboard.latin.utils.Theme
 import helium314.keyboard.latin.utils.UncachedInputMethodManagerUtils
 import helium314.keyboard.latin.utils.WordData
 import helium314.keyboard.latin.utils.dictTestImeOption
@@ -121,7 +123,7 @@ import helium314.keyboard.settings.dialogs.InfoDialog
 import helium314.keyboard.settings.dialogs.ThreeButtonAlertDialog
 import helium314.keyboard.settings.initPreview
 import helium314.keyboard.settings.isWideScreen
-import helium314.keyboard.settings.previewDark
+import helium314.keyboard.latin.utils.previewDark
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch

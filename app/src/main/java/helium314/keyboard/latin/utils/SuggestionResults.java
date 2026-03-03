@@ -38,7 +38,7 @@ public final class SuggestionResults extends TreeSet<SuggestedWordInfo> {
             final boolean firstSuggestionExceedsConfidenceThreshold) {
         super(comparator);
         mCapacity = capacity;
-        if (ProductionFlags.INCLUDE_RAW_SUGGESTIONS) {
+        if (ProductionFlags.INCLUDE_RAW_SUGGESTIONS || GestureDataGatheringKt.usePassiveGathering) {
             mRawSuggestions = new ArrayList<>();
         } else {
             mRawSuggestions = null;

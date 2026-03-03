@@ -53,13 +53,34 @@ fun isPassiveGatheringEnabled(prefs: SharedPreferences) = prefs.getBoolean(PREF_
 fun setPassiveGatheringEnabled(prefs: SharedPreferences, enabled: Boolean) =
     prefs.edit { putBoolean(PREF_PASSIVE_ENABLED, enabled) }
 
-fun isPassiveGatheringUsed(prefs: SharedPreferences): Boolean {
-    // depending on app and input type
-    // this should also be responsible for showing some indicator (probably goes to settingsValues)
+// todo: setPassiveGatheringEnablement instead of returning?
+// this should be updated on every startInput
 
-    // in suggest we get the suggestions, but have no way of guessing the wanted word
-    // but if we try get them later (in inputLogic) the results are modified
-    // -> try including raw results? would probably be best
+// in suggest we get the suggestions, but have no way of guessing the wanted word
+// but if we try get them later (in inputLogic) the results are modified
+// -> try including raw results? would probably be best
+//  storing in inputlogic could allow temp-storing everything until input is finished or restarted,
+//  and remove existing words that get corrected / removed (maybe...)
+//  what we need to consider is people correcting the word (delete + write, select a suggestion)
+
+// todo: this needs to be tied to some visual indicator
+@JvmField
+var usePassiveGathering = false
+
+// todo: onStartInput!
+//  then update indicator right away (suggestion strip?)
+fun setUsePassiveGathering(context: Context, editorInfo: EditorInfo) {
+    usePassiveGathering = isPassiveGatheringUsed(context, editorInfo)
+}
+
+private fun isPassiveGatheringUsed(context: Context, editorInfo: EditorInfo): Boolean {
+    if (!isPassiveGatheringEnabled(context.prefs())) return false
+    if (Settings.getValues().mIncognitoModeEnabled) return false
+    val inputAttributes = InputAttributes(editorInfo, false, "")
+    val isEmailField = InputTypeUtils.isEmailVariation(inputAttributes.mInputType and InputType.TYPE_MASK_VARIATION)
+    if (inputAttributes.mIsPasswordField || inputAttributes.mNoLearning || isEmailField) return false
+    if (isForbiddenForDataGathering(editorInfo.packageName, context)) return false
+    return true
 }
 
 fun setWordIgnoreList(context: Context, list: Collection<String>) {
@@ -89,7 +110,7 @@ fun setAppIgnoreByDefault(context: Context, value: Boolean) =
 fun getAppIgnoreByDefault(context: Context) =
     context.prefs().getBoolean(PREF_APP_EXCLUSIONS_IGNORE_BY_DEFAULT, false)
 
-fun isForbiddenForDataGathering(packageName: String, context: Context): Boolean {
+fun isForbiddenForDataGathering(packageName: String?, context: Context): Boolean {
     val exclusions = getAppExclusionList(context)
     return if (getAppIgnoreByDefault(context)) packageName !in exclusions
     else packageName in exclusions

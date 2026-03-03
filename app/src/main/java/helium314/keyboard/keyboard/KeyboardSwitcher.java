@@ -589,6 +589,11 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
         }, timeMillis);
     }
 
+    public void setPassiveGatheringIndicator(boolean enabled) {
+        mCurrentInputView.findViewById(R.id.passiveGatheringIndicator)
+            .setVisibility(enabled ? View.VISIBLE: View.GONE);
+    }
+
     // Implements {@link KeyboardState.SwitchActions}.
     @Override
     public boolean isInDoubleTapShiftKeyTimeout() {

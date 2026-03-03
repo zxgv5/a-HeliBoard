@@ -849,6 +849,10 @@ public class LatinIME extends InputMethodService implements
         GestureDataGatheringKt.showEndNotificationIfNecessary(this); // will do nothing for a long time
         mInputLogic.setFacilitator(mDictionaryFacilitator);
 
+        // ... and more for passive data gathering
+        boolean usePassive = GestureDataGatheringKt.setUsePassiveGathering(this, editorInfo);
+        mKeyboardSwitcher.setPassiveGatheringIndicator(usePassive);
+
         mDictionaryFacilitator.onStartInput();
         // Switch to the null consumer to handle cases leading to early exit below, for which we
         // also wouldn't be consuming gesture data.

@@ -63,14 +63,13 @@ fun setPassiveGatheringEnabled(prefs: SharedPreferences, enabled: Boolean) =
 //  and remove existing words that get corrected / removed (maybe...)
 //  what we need to consider is people correcting the word (delete + write, select a suggestion)
 
-// todo: this needs to be tied to some visual indicator
 @JvmField
 var usePassiveGathering = false
 
-// todo: onStartInput!
-//  then update indicator right away (suggestion strip?)
-fun setUsePassiveGathering(context: Context, editorInfo: EditorInfo) {
+fun setUsePassiveGathering(context: Context, editorInfo: EditorInfo): Boolean {
     usePassiveGathering = isPassiveGatheringUsed(context, editorInfo)
+    Log.i("test", "using passive: $usePassiveGathering")
+    return usePassiveGathering
 }
 
 private fun isPassiveGatheringUsed(context: Context, editorInfo: EditorInfo): Boolean {
@@ -104,16 +103,16 @@ fun getAppExclusionList(context: Context): List<String> {
     return string.split(",").filterNot { it.isEmpty() }
 }
 
-fun setAppIgnoreByDefault(context: Context, value: Boolean) =
-    context.prefs().edit { putBoolean(PREF_APP_EXCLUSIONS_IGNORE_BY_DEFAULT, value) }
+fun setAppIncludeByDefault(context: Context, value: Boolean) =
+    context.prefs().edit { putBoolean(PREF_APP_EXCLUSIONS_INCLUDE_BY_DEFAULT, value) }
 
-fun getAppIgnoreByDefault(context: Context) =
-    context.prefs().getBoolean(PREF_APP_EXCLUSIONS_IGNORE_BY_DEFAULT, false)
+fun getAppIncludeByDefault(context: Context) =
+    context.prefs().getBoolean(PREF_APP_EXCLUSIONS_INCLUDE_BY_DEFAULT, false)
 
 fun isForbiddenForDataGathering(packageName: String?, context: Context): Boolean {
     val exclusions = getAppExclusionList(context)
-    return if (getAppIgnoreByDefault(context)) packageName !in exclusions
-    else packageName in exclusions
+    return if (getAppIncludeByDefault(context)) packageName in exclusions
+    else packageName !in exclusions
 }
 
 fun addExportedActiveDeletionCount(context: Context, count: Int) {
@@ -193,7 +192,7 @@ fun showEndNotificationIfNecessary(context: Context) {
 
 private const val PREF_WORD_EXCLUSIONS = "gesture_data_word_exclusions"
 private const val PREF_APP_EXCLUSIONS = "gesture_data_app_exclusions"
-private const val PREF_APP_EXCLUSIONS_IGNORE_BY_DEFAULT = "gesture_data_app_exclusions_ignore_by_default"
+private const val PREF_APP_EXCLUSIONS_INCLUDE_BY_DEFAULT = "gesture_data_app_exclusions_ignore_by_default"
 private const val PREF_DELETED_ACTIVE = "gesture_data_deleted_active_words"
 private const val PREF_PASSIVE_NOTIFY_COUNT = "gesture_data_passive_notify_count"
 private const val PREF_PASSIVE_ENABLED = "gesture_data_passive_gathering_enabled"

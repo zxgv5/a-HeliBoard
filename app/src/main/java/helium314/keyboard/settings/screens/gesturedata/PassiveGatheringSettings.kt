@@ -51,12 +51,12 @@ import helium314.keyboard.latin.utils.DeleteButton
 import helium314.keyboard.latin.utils.GestureDataDao
 import helium314.keyboard.latin.utils.dpToPx
 import helium314.keyboard.latin.utils.getAppExclusionList
-import helium314.keyboard.latin.utils.getAppIgnoreByDefault
+import helium314.keyboard.latin.utils.getAppIncludeByDefault
 import helium314.keyboard.latin.utils.getWordIgnoreList
 import helium314.keyboard.latin.utils.isPassiveGatheringEnabled
 import helium314.keyboard.latin.utils.prefs
 import helium314.keyboard.latin.utils.setAppExclusionList
-import helium314.keyboard.latin.utils.setAppIgnoreByDefault
+import helium314.keyboard.latin.utils.setAppIncludeByDefault
 import helium314.keyboard.latin.utils.setPassiveGatheringEnabled
 import helium314.keyboard.latin.utils.setWordIgnoreList
 import helium314.keyboard.settings.dialogs.InfoDialog
@@ -88,7 +88,7 @@ fun PassiveGatheringSettings() {
     ButtonWithText(stringResource(R.string.gesture_data_passive_gathering_info_message), Modifier.fillMaxWidth()) { showExcludedWordsDialog = true }
     ButtonWithText(stringResource(R.string.gesture_data_passive_apps_button), Modifier.fillMaxWidth()) { showIncludedAppsDialog = true }
     if (showInfoDialog) {
-        InfoDialog("infos about passive data gathering") { showInfoDialog = false } // todo
+        InfoDialog(stringResource(R.string.gesture_data_passive_gathering_info_message)) { showInfoDialog = false }
     }
     var packageInfos by remember { mutableStateOf(emptyList<Triple<String, String, Drawable?>>()) }
     val scope = rememberCoroutineScope()
@@ -97,7 +97,7 @@ fun PassiveGatheringSettings() {
             scope.launch { packageInfos = AppsManager(ctx).getPackagesWithNameAndIcon() }
     }
     if (showIncludedAppsDialog) {
-        var defaultIgnore by remember { mutableStateOf(getAppIgnoreByDefault(ctx)) }
+        var defaultInclude by remember { mutableStateOf(getAppIncludeByDefault(ctx)) }
         var excludedPackages by remember { mutableStateOf(getAppExclusionList(ctx)) }
         var sortedPackagesAndNames by remember { mutableStateOf(
             packageInfos
@@ -118,7 +118,7 @@ fun PassiveGatheringSettings() {
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Text(stringResource(R.string.gesture_data_passive_apps_include_default))
-                    Switch(checked = defaultIgnore, onCheckedChange = { defaultIgnore = it; setAppIgnoreByDefault(ctx, it) })
+                    Switch(checked = defaultInclude, onCheckedChange = { defaultInclude = it; setAppIncludeByDefault(ctx, it) })
                 }
                 TextField(
                     value = filter,
@@ -136,12 +136,12 @@ fun PassiveGatheringSettings() {
                             filter.text in it.second
                     }
                     items(filtered, { it.first }) { (packageName, name, icon) ->
-                        val ignored = if (defaultIgnore) packageName !in excludedPackages else packageName in excludedPackages
+                        val included = if (defaultInclude) packageName !in excludedPackages else packageName in excludedPackages
                         Row(Modifier
                             .fillMaxWidth()
                             .clickable {
-                                excludedPackages = if (ignored) excludedPackages - packageName
-                                else excludedPackages + packageName
+                                excludedPackages = if (included) excludedPackages + packageName
+                                else excludedPackages - packageName
                             },
                             Arrangement.spacedBy(6.dp),
                             Alignment.CenterVertically
@@ -159,14 +159,14 @@ fun PassiveGatheringSettings() {
                                 CompositionLocalProvider(LocalTextStyle provides MaterialTheme.typography.bodyMedium) {
                                     Text(
                                         packageName,
-                                        color = if (ignored) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
+                                        color = if (included) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
                                     )
                                 }
                             }
-                            if (ignored)
-                                Icon(painterResource(R.drawable.ic_close), "ignored", Modifier.size(32.dp), MaterialTheme.colorScheme.error)
-                            else
+                            if (included)
                                 Icon(painterResource(R.drawable.ic_setup_check), "included", Modifier.size(32.dp), MaterialTheme.colorScheme.primary)
+                            else
+                                Icon(painterResource(R.drawable.ic_close), "ignored", Modifier.size(32.dp), MaterialTheme.colorScheme.error)
                         }
                     }
                 }

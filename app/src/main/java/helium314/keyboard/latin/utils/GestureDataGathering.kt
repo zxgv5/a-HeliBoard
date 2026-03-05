@@ -231,9 +231,13 @@ class WordData(
     private val height = keyboard.mOccupiedHeight
     private val width = keyboard.mOccupiedWidth
 
-    // if contacts dict is used we keep this information
-    private val dictionariesInSuggestions = suggestions.map { it.mSourceDict }.toSet()
     private val packageName = keyboard.mId.mEditorInfo.packageName
+
+    // we want to store which dictionaries are used, and a dict index (in used dict list) for each suggestion
+    private var dictCount = 0
+    private val dictionariesInSuggestions = LinkedHashMap<Dictionary, Int>().apply { // linked because we need the order
+        suggestions.forEach { if (!containsKey(it.mSourceDict)) put(it.mSourceDict, dictCount++) }
+    }
 
     private val timestamp = System.currentTimeMillis()
 
@@ -277,11 +281,12 @@ class WordData(
             if (!context.protectedPrefs().contains(Settings.PREF_LIBRARY_CHECKSUM)) null
                 else context.protectedPrefs().getString(Settings.PREF_LIBRARY_CHECKSUM, "") == JniUtils.expectedDefaultChecksum(),
             targetWord,
-            dictionariesInSuggestions.map {
-                val hash = (it as? BinaryDictionary)?.hash ?: (it as? ReadOnlyBinaryDictionary)?.hash
-                DictInfo(hash, it.mDictType, it.mLocale?.toLanguageTag())
+            dictionariesInSuggestions.map { (dict, _) ->
+                val hash = (dict as? BinaryDictionary)?.hash ?: (dict as? ReadOnlyBinaryDictionary)?.hash
+                DictInfo(hash, dict.mDictType, dict.mLocale?.toLanguageTag())
             },
-            filteredSuggestions.map { Suggestion(it.mWord, it.mScore) },
+            // todo: check whether the index really is correct!
+            filteredSuggestions.map { Suggestion(it.mWord, it.mScore, dictionariesInSuggestions[it.mSourceDict]) },
             PointerData.fromPointers(composedData.mInputPointers),
             keyboardInfo,
             activeMode,
@@ -308,7 +313,7 @@ class WordData(
     private fun isSavingOk(context: Context): Boolean {
         if (inputStyle != SuggestedWords.INPUT_STYLE_TAIL_BATCH)
             return false
-        if (activeMode && dictionariesInSuggestions.size == 1)
+        if (activeMode && dictCount == 1)
             return true // active mode should be fine, the size check is just an addition in case there is a bug that sets the wrong mode or dictionary facilitator
         if (Settings.getValues().mIncognitoModeEnabled)
             return false // don't save in incognito mode
@@ -353,7 +358,7 @@ data class GestureData(
 data class DictInfo(val hash: String?, val type: String, val language: String?)
 
 @Serializable
-data class Suggestion(val word: String, val score: Int)
+data class Suggestion(val word: String, val score: Int, val dictIndex: Int? = null)
 
 @Serializable
 data class PointerData(val id: Int, val x: Int, val y: Int, val millis: Int) {

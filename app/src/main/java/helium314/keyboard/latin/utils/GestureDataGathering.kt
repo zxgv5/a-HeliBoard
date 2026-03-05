@@ -53,9 +53,6 @@ fun isPassiveGatheringEnabled(prefs: SharedPreferences) = prefs.getBoolean(PREF_
 fun setPassiveGatheringEnabled(prefs: SharedPreferences, enabled: Boolean) =
     prefs.edit { putBoolean(PREF_PASSIVE_ENABLED, enabled) }
 
-// todo: setPassiveGatheringEnablement instead of returning?
-// this should be updated on every startInput
-
 // in suggest we get the suggestions, but have no way of guessing the wanted word
 // but if we try get them later (in inputLogic) the results are modified
 // -> try including raw results? would probably be best
@@ -63,12 +60,27 @@ fun setPassiveGatheringEnabled(prefs: SharedPreferences, enabled: Boolean) =
 //  and remove existing words that get corrected / removed (maybe...)
 //  what we need to consider is people correcting the word (delete + write, select a suggestion)
 
+// cache
+//  add data in suggest (on getting gesture end suggestion)
+//  flush onStartInput and onFinishInput
+//  target word
+//   initially use top suggestion (no matter which dict)
+//   update targetWord onPickSuggestionManually
+//   do something when pressing delete (at very least right after gesture typing, because that deletes the word)
+//   somehow find when user modifies a word? this will be tricky
+
+object PassiveGatheringCache {
+    fun addWord(word: WordData) {
+        // initial target word is first (modified) suggestion, may have different capitalization
+    }
+}
+
 @JvmField
 var usePassiveGathering = false
 
 fun setUsePassiveGathering(context: Context, editorInfo: EditorInfo): Boolean {
+    // todo: flush cache (once we have one) -> also flush it on finish input
     usePassiveGathering = isPassiveGatheringUsed(context, editorInfo)
-    Log.i("test", "using passive: $usePassiveGathering")
     return usePassiveGathering
 }
 
@@ -257,6 +269,7 @@ class WordData(
                 continue // only one occurrence per word
             if (filteredSuggestions.size > 12)
                 continue // should be enough
+            // todo: remove blocked words
             filteredSuggestions.add(word)
         }
         val data = GestureData(

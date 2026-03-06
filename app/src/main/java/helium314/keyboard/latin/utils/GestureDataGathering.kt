@@ -81,14 +81,27 @@ fun setPassiveGatheringEnabled(prefs: SharedPreferences, enabled: Boolean) =
 //   delete inside word, or just few letters -> eww...
 // todo: non-empty cache should change color of "recording" icon
 object PassiveGatheringCache {
+    private val cachedWords = mutableListOf<WordData>()
     fun addWord(word: WordData) {
         // initial target word is first (modified) suggestion, may have different capitalization
         // -> target word as var so we can update it?
+        cachedWords.add(word)
     }
 
     fun onPickSuggestionAfterGesturing(suggestion: SuggestedWords.SuggestedWordInfo, originalWord: String) {
         // replace the latest entry in cache, or is there any chance we come here other than right after gesture typing?
         // anyway, use originalWord to make sure we're replacing the right thing
+        val lastEntry = cachedWords.lastOrNull()
+        if (lastEntry == null) {
+            // log message?
+            return
+        }
+        if (lastEntry.targetWord != originalWord) {
+            // log message?
+            return
+        }
+        lastEntry.targetWord = suggestion.mWord
+        // todo: check whether we really have the suggestion in lastEntry? but we should have...
     }
 
     fun onPickSuggestion(suggestion: SuggestedWords.SuggestedWordInfo, originalWord: String) {
@@ -102,6 +115,16 @@ object PassiveGatheringCache {
 
     fun flush(context: Context) {
         // save all words and clear cache
+        val words = cachedWords.toList()
+        cachedWords.clear()
+        // todo: coroutine to avoid bad performance
+        //  but then GestureDataDao db access must be synchronized!
+        words.forEach { it.save(context) }
+    }
+
+    fun clear() {
+        // just clear it without saving
+        cachedWords.clear()
     }
 }
 
@@ -253,7 +276,7 @@ var gestureDataActiveFacilitator: SingleDictionaryFacilitator? = null
 
 // class for storing relevant information
 class WordData(
-    val targetWord: String,
+    var targetWord: String, // might be adjusted when using passive gathering
     val suggestions: SuggestionResults,
     val composedData: ComposedData,
     val ngramContext: NgramContext,

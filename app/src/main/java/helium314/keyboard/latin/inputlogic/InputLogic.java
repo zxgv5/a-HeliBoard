@@ -156,6 +156,8 @@ public final class InputLogic {
     public void startInput(final String combiningSpec, final SettingsValues settingsValues) {
         if (GestureDataGatheringKt.usePassiveGathering) {
             PassiveGatheringCache.INSTANCE.flush(mLatinIME);
+        } else {
+            PassiveGatheringCache.INSTANCE.clear();
         }
         mEnteredText = null;
         mWordBeingCorrectedByCursor = null;
@@ -215,6 +217,8 @@ public final class InputLogic {
     public void finishInput() {
         if (GestureDataGatheringKt.usePassiveGathering) {
             PassiveGatheringCache.INSTANCE.flush(mLatinIME);
+        } else {
+            PassiveGatheringCache.INSTANCE.clear();
         }
         if (mWordComposer.isComposingWord()) {
             mConnection.finishComposingText();

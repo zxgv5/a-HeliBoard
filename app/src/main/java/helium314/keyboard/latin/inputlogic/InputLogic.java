@@ -55,9 +55,11 @@ import helium314.keyboard.latin.settings.SpacingAndPunctuations;
 import helium314.keyboard.latin.suggestions.SuggestionStripViewAccessor;
 import helium314.keyboard.latin.utils.AsyncResultHolder;
 import helium314.keyboard.latin.utils.DictionaryInfoUtils;
+import helium314.keyboard.latin.utils.GestureDataGatheringKt;
 import helium314.keyboard.latin.utils.InputTypeUtils;
 import helium314.keyboard.latin.utils.IntentUtils;
 import helium314.keyboard.latin.utils.Log;
+import helium314.keyboard.latin.utils.PassiveGatheringCache;
 import helium314.keyboard.latin.utils.RecapitalizeMode;
 import helium314.keyboard.latin.utils.RecapitalizeStatus;
 import helium314.keyboard.latin.utils.ScriptUtils;
@@ -152,6 +154,9 @@ public final class InputLogic {
      * @param settingsValues the current settings values
      */
     public void startInput(final String combiningSpec, final SettingsValues settingsValues) {
+        if (GestureDataGatheringKt.usePassiveGathering) {
+            PassiveGatheringCache.INSTANCE.flush(mLatinIME);
+        }
         mEnteredText = null;
         mWordBeingCorrectedByCursor = null;
         mConnection.onStartInput();
@@ -208,6 +213,9 @@ public final class InputLogic {
      * Clean up the input logic after input is finished.
      */
     public void finishInput() {
+        if (GestureDataGatheringKt.usePassiveGathering) {
+            PassiveGatheringCache.INSTANCE.flush(mLatinIME);
+        }
         if (mWordComposer.isComposingWord()) {
             mConnection.finishComposingText();
             StatsUtils.onWordCommitUserTyped(mWordComposer.getTypedWord(), mWordComposer.isBatchMode());
@@ -291,6 +299,13 @@ public final class InputLogic {
             // Rely on onCodeInput to do the complicated swapping/stripping logic consistently.
             final Event event = Event.createPunctuationSuggestionPickedEvent(suggestionInfo);
             return onCodeInput(settingsValues, event, keyboardShiftState, currentKeyboardScript, handler);
+        }
+        if (GestureDataGatheringKt.usePassiveGathering) {
+            if (mWordComposer.isBatchMode())
+                // should only happen selecting different suggestion for gesture typed word
+                PassiveGatheringCache.INSTANCE.onPickSuggestionAfterGesturing(suggestionInfo, mWordComposer.getTypedWord());
+            else
+                PassiveGatheringCache.INSTANCE.onPickSuggestion(suggestionInfo, mWordComposer.getTypedWord());
         }
 
         final Event event = Event.createSuggestionPickedEvent(suggestionInfo);
@@ -1267,6 +1282,9 @@ public final class InputLogic {
         if (mWordComposer.isComposingWord()) {
             if (mWordComposer.isBatchMode()) {
                 final String rejectedSuggestion = mWordComposer.getTypedWord();
+                if (GestureDataGatheringKt.usePassiveGathering) {
+                    PassiveGatheringCache.INSTANCE.onRejectedSuggestion(rejectedSuggestion);
+                }
                 mWordComposer.reset();
                 mWordComposer.setRejectedBatchModeSuggestion(rejectedSuggestion);
                 if (!TextUtils.isEmpty(rejectedSuggestion)) {

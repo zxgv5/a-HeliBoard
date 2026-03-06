@@ -69,11 +69,45 @@ fun setPassiveGatheringEnabled(prefs: SharedPreferences, enabled: Boolean) =
 //   do something when pressing delete (at very least right after gesture typing, because that deletes the word)
 //   somehow find when user modifies a word? this will be tricky
 
+// todo: check interaction with (inline) emoji search
+// todo: make sure this is not used at all in active mode! (because passive can be enabled at the same time)
+// todo: track cursor? and tap-typing / deleting / ... when touching word (has composing word)
+//  user adds character to gestured word (at any position)
+//   -> here we should be able to track the changes, but can't for sure tell which word it was if we have duplicates
+//   but maybe we should stop tracking when inserting separator / non-letter except word connector
+//  user moves cursor -> here we get the new word at cursor i think
+//  user deletes stuff -> might work as well, but this can be tricky
+//   delete right after gesturing -> suggestion rejected -> we need this case (delete word!)
+//   delete inside word, or just few letters -> eww...
+// todo: non-empty cache should change color of "recording" icon
 object PassiveGatheringCache {
     fun addWord(word: WordData) {
         // initial target word is first (modified) suggestion, may have different capitalization
+        // -> target word as var so we can update it?
+    }
+
+    fun onPickSuggestionAfterGesturing(suggestion: SuggestedWords.SuggestedWordInfo, originalWord: String) {
+        // replace the latest entry in cache, or is there any chance we come here other than right after gesture typing?
+        // anyway, use originalWord to make sure we're replacing the right thing
+    }
+
+    fun onPickSuggestion(suggestion: SuggestedWords.SuggestedWordInfo, originalWord: String) {
+        // this can happen after tap-typing (new word or corrected gesture word), or when moving the cursor and selecting a different suggestion
+    }
+
+    fun onRejectedSuggestion(suggestion: String) {
+        // delete the word data
+        // should always be the most recently added word, but better check it
+    }
+
+    fun flush(context: Context) {
+        // save all words and clear cache
     }
 }
+
+// todo: optional toolbar button to stop collection (forever, for 5 min or whatever)
+//  should also clear the cache
+//  describe button in the text
 
 @JvmField
 var usePassiveGathering = false
@@ -96,6 +130,7 @@ private fun isPassiveGatheringUsed(context: Context, editorInfo: EditorInfo): Bo
 
 fun setWordIgnoreList(context: Context, list: Collection<String>) {
     val json = Json.encodeToString(list)
+    // todo: when adding a word, it should be removed from db, but also from suggestions of existing entries -> this will be awful
     context.prefs().edit { putString(PREF_WORD_EXCLUSIONS, json) }
 }
 

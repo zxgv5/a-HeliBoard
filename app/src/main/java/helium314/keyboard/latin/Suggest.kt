@@ -344,9 +344,9 @@ class Suggest(private val mDictionaryFacilitator: DictionaryFacilitator) {
             suggestionsContainer
         }
 
-        if (usePassiveGathering) {
-            val wordData = WordData(pseudoTypedWordInfo?.mWord ?: "", suggestionResults, wordComposer.composedDataSnapshot,
-                ngramContext, keyboard, inputStyle, false)
+        if (usePassiveGathering && inputStyle == SuggestedWords.INPUT_STYLE_TAIL_BATCH) {
+            val wordData = WordData(null, suggestionResults, wordComposer.composedDataSnapshot,
+                ngramContext, keyboard, inputStyle, false, pseudoTypedWordInfo?.mWord)
             PassiveGatheringCache.addWord(wordData)
         }
 

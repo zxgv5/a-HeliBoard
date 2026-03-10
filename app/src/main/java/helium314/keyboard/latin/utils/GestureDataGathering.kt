@@ -80,42 +80,68 @@ fun setPassiveGatheringEnabled(prefs: SharedPreferences, enabled: Boolean) =
 //   delete right after gesturing -> suggestion rejected -> we need this case (delete word!)
 //   delete inside word, or just few letters -> eww...
 // todo: non-empty cache should change color of "recording" icon
+//  icon needs to be described in the text (and maybe have some dark outline in case user has red keyboard)
+// todo: optional toolbar button to stop collection (forever, for 5 min or whatever)
+//  should also clear the cache
+//  describe button in the infotext
+// todo: describe in info text exactly what is stored
 object PassiveGatheringCache {
     private val cachedWords = mutableListOf<WordData>()
+    private const val TAG = "PassiveGathering"
     fun addWord(word: WordData) {
         // initial target word is first (modified) suggestion, may have different capitalization
         // -> target word as var so we can update it?
+        Log.i(TAG, "adding ${word.usedWord}")
         cachedWords.add(word)
     }
 
     fun onPickSuggestionAfterGesturing(suggestion: SuggestedWords.SuggestedWordInfo, originalWord: String) {
         // replace the latest entry in cache, or is there any chance we come here other than right after gesture typing?
         // anyway, use originalWord to make sure we're replacing the right thing
+        Log.i(TAG, "picked ${suggestion.word} instead of $originalWord after gesturing")
         val lastEntry = cachedWords.lastOrNull()
         if (lastEntry == null) {
             // log message?
+            Log.w(TAG, "...but cache is empty")
             return
         }
-        if (lastEntry.targetWord != originalWord) {
+        if (lastEntry.usedWord != originalWord) {
             // log message?
+            Log.w(TAG, "...but our last word is ${lastEntry.usedWord}, not $originalWord")
             return
         }
+        lastEntry.usedWord = suggestion.mWord
         lastEntry.targetWord = suggestion.mWord
-        // todo: check whether we really have the suggestion in lastEntry? but we should have...
     }
 
     fun onPickSuggestion(suggestion: SuggestedWords.SuggestedWordInfo, originalWord: String) {
-        // this can happen after tap-typing (new word or corrected gesture word), or when moving the cursor and selecting a different suggestion
+        Log.i(TAG, "picked ${suggestion.word} instead of $originalWord")
+        // this happen after tap-typing (new word or corrected gesture word), or when moving the cursor and then selecting a different suggestion
+        // don't update anything if we have the word more than once
+        val word = cachedWords.singleOrNull { it.usedWord == originalWord } ?: return
+        word.usedWord = suggestion.mWord
+        word.targetWord = suggestion.mWord
     }
 
     fun onRejectedSuggestion(suggestion: String) {
-        // delete the word data
-        // should always be the most recently added word, but better check it
+        Log.i(TAG, "rejected $suggestion")
+        if (cachedWords.lastOrNull()?.usedWord != suggestion) {
+            Log.w(TAG, "...but last word is ${cachedWords.lastOrNull()?.usedWord}")
+            return
+        }
+        cachedWords.removeAt(cachedWords.lastIndex)
+    }
+
+    fun onEdit(word: String) {
+        // todo: not sure whether this should be kept, because repeated backspace might remove different words
+        Log.i(TAG, "edit something in $word")
+        cachedWords.removeAll { it.usedWord == word }
     }
 
     fun flush(context: Context) {
         // save all words and clear cache
         val words = cachedWords.toList()
+        Log.i(TAG, "flush cache")
         cachedWords.clear()
         // todo: coroutine to avoid bad performance
         //  but then GestureDataDao db access must be synchronized!
@@ -124,13 +150,10 @@ object PassiveGatheringCache {
 
     fun clear() {
         // just clear it without saving
+        Log.i(TAG, "clear cache")
         cachedWords.clear()
     }
 }
-
-// todo: optional toolbar button to stop collection (forever, for 5 min or whatever)
-//  should also clear the cache
-//  describe button in the text
 
 @JvmField
 var usePassiveGathering = false
@@ -148,6 +171,7 @@ private fun isPassiveGatheringUsed(context: Context, editorInfo: EditorInfo): Bo
     val isEmailField = InputTypeUtils.isEmailVariation(inputAttributes.mInputType and InputType.TYPE_MASK_VARIATION)
     if (inputAttributes.mIsPasswordField || inputAttributes.mNoLearning || isEmailField) return false
     if (isForbiddenForDataGathering(editorInfo.packageName, context)) return false
+    // todo: if no known dict return false?
     return true
 }
 
@@ -276,13 +300,14 @@ var gestureDataActiveFacilitator: SingleDictionaryFacilitator? = null
 
 // class for storing relevant information
 class WordData(
-    var targetWord: String, // might be adjusted when using passive gathering
+    var targetWord: String?, // might be adjusted when using passive gathering
     val suggestions: SuggestionResults,
     val composedData: ComposedData,
     val ngramContext: NgramContext,
     val keyboard: Keyboard,
     val inputStyle: Int,
     val activeMode: Boolean,
+    var usedWord: String? = null // first suggestion in passive gathering, used to track later changes (not saved)
 ) {
     // keyboard is not immutable, so better store potentially relevant information immediately
     private val keys = keyboard.sortedKeys

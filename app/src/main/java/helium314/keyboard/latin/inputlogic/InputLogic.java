@@ -248,6 +248,9 @@ public final class InputLogic {
         mConnection.beginBatchEdit();
         if (mWordComposer.isComposingWord()) {
             if (mWordComposer.isCursorFrontOrMiddleOfComposingWord()) {
+                if (GestureDataGatheringKt.usePassiveGathering)
+                    PassiveGatheringCache.INSTANCE.onEdit(mWordComposer.getTypedWord());
+
                 // stop composing, otherwise the text will end up at the end of the current word
                 mConnection.finishComposingText();
                 resetComposingState(false);
@@ -383,6 +386,11 @@ public final class InputLogic {
         if (mConnection.isBelatedExpectedUpdate(oldSelStart, newSelStart, oldSelEnd, newSelEnd, composingSpanStart, composingSpanEnd)) {
             return false;
         }
+
+        // if all text is gone, we treat it like onStartInput and flush the passive data gathering cache
+        if (GestureDataGatheringKt.usePassiveGathering && newSelStart == 0 && newSelEnd == 0 && !mConnection.hasTextAfterCursor())
+            PassiveGatheringCache.INSTANCE.flush(mLatinIME);
+
         // TODO: the following is probably better done in resetEntireInputState().
         // it should only happen when the cursor moved, and the very purpose of the
         // test below is to narrow down whether this happened or not. Likewise with
@@ -469,6 +477,10 @@ public final class InputLogic {
             final String currentKeyboardScript, final LatinIME.UIHandler handler) {
         mWordBeingCorrectedByCursor = null;
         mJustRevertedACommit = false;
+
+        if (GestureDataGatheringKt.usePassiveGathering && mWordComposer.isComposingWord() && mWordComposer.isCursorInFrontOfComposingWord())
+            PassiveGatheringCache.INSTANCE.onEdit(mWordComposer.getTypedWord());
+
         final Event processedEvent = mWordComposer.processEvent(event);
         final InputTransaction inputTransaction = new InputTransaction(settingsValues,
                 processedEvent, SystemClock.uptimeMillis(), mSpaceState,

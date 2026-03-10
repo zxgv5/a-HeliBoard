@@ -36,6 +36,9 @@ import helium314.keyboard.settings.SettingsDestination
 import helium314.keyboard.settings.dialogs.ThreeButtonAlertDialog
 import helium314.keyboard.settings.screens.gesturedata.END_DATE_EPOCH_MILLIS
 import helium314.keyboard.settings.screens.gesturedata.TWO_WEEKS_IN_MILLIS
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import java.text.DateFormat
@@ -52,22 +55,6 @@ fun isPassiveGatheringEnabled(prefs: SharedPreferences) = prefs.getBoolean(PREF_
 
 fun setPassiveGatheringEnabled(prefs: SharedPreferences, enabled: Boolean) =
     prefs.edit { putBoolean(PREF_PASSIVE_ENABLED, enabled) }
-
-// in suggest we get the suggestions, but have no way of guessing the wanted word
-// but if we try get them later (in inputLogic) the results are modified
-// -> try including raw results? would probably be best
-//  storing in inputlogic could allow temp-storing everything until input is finished or restarted,
-//  and remove existing words that get corrected / removed (maybe...)
-//  what we need to consider is people correcting the word (delete + write, select a suggestion)
-
-// cache
-//  add data in suggest (on getting gesture end suggestion)
-//  flush onStartInput and onFinishInput
-//  target word
-//   initially use top suggestion (no matter which dict)
-//   update targetWord onPickSuggestionManually
-//   do something when pressing delete (at very least right after gesture typing, because that deletes the word)
-//   somehow find when user modifies a word? this will be tricky
 
 // todo: check interaction with (inline) emoji search
 // todo: make sure this is not used at all in active mode! (because passive can be enabled at the same time)
@@ -88,6 +75,8 @@ fun setPassiveGatheringEnabled(prefs: SharedPreferences, enabled: Boolean) =
 object PassiveGatheringCache {
     private val cachedWords = mutableListOf<WordData>()
     private const val TAG = "PassiveGathering"
+    private val scope = CoroutineScope(Dispatchers.IO)
+
     fun addWord(word: WordData) {
         // initial target word is first (modified) suggestion, may have different capitalization
         // -> target word as var so we can update it?
@@ -145,7 +134,7 @@ object PassiveGatheringCache {
         cachedWords.clear()
         // todo: coroutine to avoid bad performance
         //  but then GestureDataDao db access must be synchronized!
-        words.forEach { it.save(context) }
+        scope.launch { words.forEach { it.save(context) } }
     }
 
     fun clear() {
@@ -470,7 +459,7 @@ data class KeyInfo(val left: Int, val width: Int, val top: Int, val height: Int,
 data class KeyboardInfo(val width: Int, val height: Int, val keys: List<KeyInfo>)
 
 class GestureDataDao(val db: Database) {
-    fun add(data: GestureData, timestamp: Long) {
+    fun add(data: GestureData, timestamp: Long) = synchronized(this) {
         require(data.uuid == null)
         val jsonString = Json.encodeToString(data)
         // if uuid in the resulting string is replaced with null, we should be able to reproduce it
@@ -491,7 +480,7 @@ class GestureDataDao(val db: Database) {
         exported: Boolean? = null,
         activeMode: Boolean? = null,
         limit: Int? = null
-    ): List<GestureDataInfo> {
+    ): List<GestureDataInfo> = synchronized(this) {
         val result = mutableListOf<GestureDataInfo>()
         val query = mutableListOf<String>()
         if (word != null) query.add("LOWER($COLUMN_WORD) like ?||'%'")
@@ -522,7 +511,7 @@ class GestureDataDao(val db: Database) {
         return result
     }
 
-    fun getJsonData(ids: List<Long>): List<String> {
+    fun getJsonData(ids: List<Long>): List<String> = synchronized(this) {
         val result = mutableListOf<String>()
         db.readableDatabase.query(
             TABLE,
@@ -540,7 +529,7 @@ class GestureDataDao(val db: Database) {
         return result
     }
 
-    fun getAllJsonData(): List<String> {
+    fun getAllJsonData(): List<String> = synchronized(this) {
         val result = mutableListOf<String>()
         db.readableDatabase.query(
             TABLE,
@@ -558,7 +547,7 @@ class GestureDataDao(val db: Database) {
         return result
     }
 
-    fun markAsExported(ids: List<Long>, context: Context) {
+    fun markAsExported(ids: List<Long>, context: Context) = synchronized(this) {
         if (ids.isEmpty()) return
         val cv = ContentValues(1)
         cv.put(COLUMN_EXPORTED, 1)
@@ -567,7 +556,7 @@ class GestureDataDao(val db: Database) {
             context.prefs().edit { remove(PREF_PASSIVE_NOTIFY_COUNT) } // reset if we exported passive data
     }
 
-    fun delete(ids: List<Long>, onlyExported: Boolean, context: Context): Int {
+    fun delete(ids: List<Long>, onlyExported: Boolean, context: Context): Int = synchronized(this) {
         if (ids.isEmpty()) return 0
         val where = "$COLUMN_ID IN (${ids.joinToString(",")})"
         val whereExported = " AND $COLUMN_EXPORTED <> 0"
@@ -586,11 +575,11 @@ class GestureDataDao(val db: Database) {
         return count
     }
 
-    fun deleteAll() {
+    fun deleteAll() = synchronized(this) {
         db.writableDatabase.delete(TABLE, null, null)
     }
 
-    fun deletePassiveWords(words: Collection<String>) {
+    fun deletePassiveWords(words: Collection<String>) = synchronized(this) {
         val wordsString = words.joinToString("','") { it.lowercase() }
         db.writableDatabase.delete(
             TABLE,
@@ -599,7 +588,7 @@ class GestureDataDao(val db: Database) {
         )
     }
 
-    fun count(exported: Boolean? = null, activeMode: Boolean? = null): Int {
+    fun count(exported: Boolean? = null, activeMode: Boolean? = null): Int = synchronized(this) {
         val where = mutableListOf<String>()
         if (exported != null)
             where.add("$COLUMN_EXPORTED ${if (exported) "<>" else "="} 0")
@@ -612,7 +601,7 @@ class GestureDataDao(val db: Database) {
         }
     }
 
-    fun isEmpty(): Boolean {
+    fun isEmpty(): Boolean = synchronized(this) {
         db.readableDatabase.rawQuery("SELECT EXISTS (SELECT 1 FROM $TABLE)", null).use {
             it.moveToFirst()
             return it.getInt(0) == 0

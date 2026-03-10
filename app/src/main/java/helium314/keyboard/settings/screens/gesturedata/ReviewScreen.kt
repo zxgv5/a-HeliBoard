@@ -92,8 +92,36 @@ fun ReviewScreen(
     var gestureDataInfos by remember { mutableStateOf(listOf<GestureDataInfo>()) }
     val wordcount = if (selected.isNotEmpty()) selected.size else gestureDataInfos.size
     val useWideLayout = isWideScreen()
+
+    // all that filtering stuff
     var sortByName: Boolean by rememberSaveable { mutableStateOf(false) }
     var reverseSort: Boolean by rememberSaveable { mutableStateOf(false) }
+    var includeActive by rememberSaveable { mutableStateOf(false) }
+    var includePassive by rememberSaveable { mutableStateOf(true) }
+    var includeExported by rememberSaveable { mutableStateOf(false) }
+    var startDate: Long? by rememberSaveable { mutableStateOf(null) }
+    var endDate: Long? by rememberSaveable { mutableStateOf(null) }
+    fun sortWords() {
+        gestureDataInfos = if (sortByName) {
+            gestureDataInfos.sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER) { it.targetWord })
+        } else {
+            gestureDataInfos.sortedBy { it.timestamp }
+        }
+        if (reverseSort)
+            gestureDataInfos = gestureDataInfos.reversed()
+    }
+    fun reloadGestureDataInfos() {
+        // todo: if slow, do in background or try returning a cursor (then sorting needs to be done by db)
+        gestureDataInfos = dao.filterInfos(
+            filter.text.takeIf { it.isNotEmpty() },
+            startDate,
+            endDate,
+            if (includeExported) null else false,
+            if (includeActive && includePassive) null else includeActive
+        )
+        selected = emptyList() // unselect on filter changes
+        sortWords()
+    }
     // todo: show "long-press to select" hint somewhere
     Scaffold(
         contentWindowInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Bottom),
@@ -185,31 +213,8 @@ fun ReviewScreen(
         }
         @Composable fun controlColumn() {
             Column(Modifier.padding(horizontal = 12.dp)) {
-                var includeActive by rememberSaveable { mutableStateOf(true) }
-                var includePassive by rememberSaveable { mutableStateOf(true) }
-                var includeExported by rememberSaveable { mutableStateOf(false) }
-                var startDate: Long? by rememberSaveable { mutableStateOf(null) }
-                var endDate: Long? by rememberSaveable { mutableStateOf(null) }
-                fun sortWords() {
-                    gestureDataInfos = if (sortByName) {
-                        gestureDataInfos.sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER) { it.targetWord })
-                    } else {
-                        gestureDataInfos.sortedBy { it.timestamp }
-                    }
-                    if (reverseSort)
-                        gestureDataInfos = gestureDataInfos.reversed()
-                }
                 LaunchedEffect(filter, startDate, endDate, includeExported, reverseSort, includeActive, includePassive) {
-                    // todo: if slow, do in background or try returning a cursor (then sorting needs to be done by db)
-                    gestureDataInfos = dao.filterInfos(
-                        filter.text.takeIf { it.isNotEmpty() },
-                        startDate,
-                        endDate,
-                        if (includeExported) null else false,
-                        if (includeActive && includePassive) null else includeActive
-                    )
-                    selected = emptyList() // unselect on filter changes
-                    sortWords()
+                    reloadGestureDataInfos()
                 }
                 LaunchedEffect(reverseSort, sortByName) {
                     sortWords()
@@ -313,6 +318,7 @@ fun ReviewScreen(
                     val toShare = if (selected.isEmpty()) gestureDataInfos else gestureDataInfos.filter { it.id in selected }
                     val toIgnore = getWordIgnoreList(ctx)
                     Column { ShareGestureData(toShare.filterNot { it.targetWord in toIgnore }.map { it.id }) }
+                    reloadGestureDataInfos()
                 },
                 cancelButtonText = stringResource(R.string.dialog_close),
                 onConfirmed = { },
@@ -325,6 +331,7 @@ fun ReviewScreen(
                 onConfirmed = {
                     val ids = selected.ifEmpty { gestureDataInfos.map { it.id } }
                     dao.delete(ids, false, ctx)
+                    reloadGestureDataInfos()
                 },
                 content = {
                     Text("are you sure? will delete $wordcount words")

@@ -132,8 +132,6 @@ object PassiveGatheringCache {
         val words = cachedWords.toList()
         Log.i(TAG, "flush cache")
         cachedWords.clear()
-        // todo: coroutine to avoid bad performance
-        //  but then GestureDataDao db access must be synchronized!
         scope.launch { words.forEach { it.save(context) } }
     }
 
@@ -148,8 +146,9 @@ object PassiveGatheringCache {
 var usePassiveGathering = false
 
 fun setUsePassiveGathering(context: Context, editorInfo: EditorInfo): Boolean {
-    // todo: flush cache (once we have one) -> also flush it on finish input
     usePassiveGathering = isPassiveGatheringUsed(context, editorInfo)
+    if (!usePassiveGathering)
+        PassiveGatheringCache.clear()
     return usePassiveGathering
 }
 

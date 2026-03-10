@@ -363,7 +363,7 @@ class WordData(
             activeMode,
             null
         )
-        dao.add(data, timestamp)
+        dao.add(data, targetWord ?: usedWord, timestamp)
         informAboutTooManyPassiveModeWords(context, dao)
     }
 
@@ -400,7 +400,7 @@ class WordData(
         // how to deal with the ignore list?
         // check targetWord and first 5 suggestions?
         // or check only what is in the actually saved suggestions?
-        if (targetWord in ignoreWords || suggestions.take(5).any { it.word in ignoreWords })
+        if (usedWord in ignoreWords || suggestions.take(5).any { it.word in ignoreWords })
             return false
         if (suggestions.first().mSourceDict.mDictType == Dictionary.TYPE_CONTACTS)
             return false
@@ -458,14 +458,14 @@ data class KeyInfo(val left: Int, val width: Int, val top: Int, val height: Int,
 data class KeyboardInfo(val width: Int, val height: Int, val keys: List<KeyInfo>)
 
 class GestureDataDao(val db: Database) {
-    fun add(data: GestureData, timestamp: Long) = synchronized(this) {
+    fun add(data: GestureData, word: String?, timestamp: Long) = synchronized(this) {
         require(data.uuid == null)
         val jsonString = Json.encodeToString(data)
         // if uuid in the resulting string is replaced with null, we should be able to reproduce it
         val dataWithId = data.copy(uuid = ChecksumCalculator.checksum(jsonString.byteInputStream()))
         val cv = ContentValues(3)
         cv.put(COLUMN_TIMESTAMP, timestamp)
-        cv.put(COLUMN_WORD, data.targetWord)
+        cv.put(COLUMN_WORD, word) // we may store the "usedWord" here, because the user should be able to find what they entered
         if (data.activeMode)
             cv.put(COLUMN_SOURCE_ACTIVE, 1)
         cv.put(COLUMN_DATA, Json.encodeToString(dataWithId))

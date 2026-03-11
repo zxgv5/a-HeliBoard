@@ -57,6 +57,7 @@ fun setPassiveGatheringEnabled(prefs: SharedPreferences, enabled: Boolean) =
     prefs.edit { putBoolean(PREF_PASSIVE_ENABLED, enabled) }
 
 // todo: check interaction with (inline) emoji search
+//  and shortcuts (emoji dicts and others)
 // todo: make sure this is not used at all in active mode! (because passive can be enabled at the same time)
 // todo: track cursor? and tap-typing / deleting / ... when touching word (has composing word)
 //  user adds character to gestured word (at any position)
@@ -153,6 +154,7 @@ fun setUsePassiveGathering(context: Context, editorInfo: EditorInfo): Boolean {
 }
 
 private fun isPassiveGatheringUsed(context: Context, editorInfo: EditorInfo): Boolean {
+    if (!JniUtils.sHaveGestureLib) return false
     if (!isPassiveGatheringEnabled(context.prefs())) return false
     if (Settings.getValues().mIncognitoModeEnabled) return false
     val inputAttributes = InputAttributes(editorInfo, false, "")

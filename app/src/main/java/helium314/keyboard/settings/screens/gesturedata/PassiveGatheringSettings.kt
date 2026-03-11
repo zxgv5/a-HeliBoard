@@ -52,13 +52,13 @@ import helium314.keyboard.latin.utils.GestureDataDao
 import helium314.keyboard.latin.utils.dpToPx
 import helium314.keyboard.latin.utils.getAppExclusionList
 import helium314.keyboard.latin.utils.getAppIncludeByDefault
-import helium314.keyboard.latin.utils.getWordIgnoreList
+import helium314.keyboard.latin.utils.getWordExclusions
 import helium314.keyboard.latin.utils.isPassiveGatheringEnabled
 import helium314.keyboard.latin.utils.prefs
 import helium314.keyboard.latin.utils.setAppExclusionList
 import helium314.keyboard.latin.utils.setAppIncludeByDefault
 import helium314.keyboard.latin.utils.setPassiveGatheringEnabled
-import helium314.keyboard.latin.utils.setWordIgnoreList
+import helium314.keyboard.latin.utils.setWordExclusions
 import helium314.keyboard.settings.dialogs.InfoDialog
 import helium314.keyboard.settings.dialogs.ThreeButtonAlertDialog
 import kotlinx.coroutines.launch
@@ -179,7 +179,7 @@ fun PassiveGatheringSettings() {
         )
     }
     if (showExcludedWordsDialog) { // todo: everything here
-        var ignoreWords by remember { mutableStateOf(getWordIgnoreList(ctx)) }
+        var ignoreWords by remember { mutableStateOf(getWordExclusions(ctx)) }
         var newWord by remember { mutableStateOf(TextFieldValue()) }
         val scroll = rememberScrollState()
         fun addWord() {
@@ -222,8 +222,8 @@ fun PassiveGatheringSettings() {
             } },
             onConfirmed = {
                 addWord()
-                setWordIgnoreList(ctx, ignoreWords)
-                GestureDataDao.getInstance(ctx)?.deletePassiveWords(ignoreWords)
+                setWordExclusions(ctx, ignoreWords)
+                scope.launch { GestureDataDao.getInstance(ctx)?.deletePassiveWords(ignoreWords) }
             },
             confirmButtonText = stringResource(android.R.string.ok),
             properties = DialogProperties(dismissOnClickOutside = false)

@@ -43,6 +43,7 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import java.text.DateFormat
 import java.util.Date
+import java.util.SortedSet
 import kotlin.random.Random
 
 // functionality for gesture data gathering as part of the NLNet Project https://nlnet.nl/project/GestureTyping/
@@ -58,15 +59,6 @@ fun setPassiveGatheringEnabled(prefs: SharedPreferences, enabled: Boolean) =
 
 // todo: check interaction with (inline) emoji search
 //  and shortcuts (emoji dicts and others)
-// todo: make sure this is not used at all in active mode! (because passive can be enabled at the same time)
-// todo: track cursor? and tap-typing / deleting / ... when touching word (has composing word)
-//  user adds character to gestured word (at any position)
-//   -> here we should be able to track the changes, but can't for sure tell which word it was if we have duplicates
-//   but maybe we should stop tracking when inserting separator / non-letter except word connector
-//  user moves cursor -> here we get the new word at cursor i think
-//  user deletes stuff -> might work as well, but this can be tricky
-//   delete right after gesturing -> suggestion rejected -> we need this case (delete word!)
-//   delete inside word, or just few letters -> eww...
 // todo: non-empty cache should change color of "recording" icon
 //  icon needs to be described in the text (and maybe have some dark outline in case user has red keyboard)
 // todo: optional toolbar button to stop collection (forever, for 5 min or whatever)
@@ -165,18 +157,22 @@ private fun isPassiveGatheringUsed(context: Context, editorInfo: EditorInfo): Bo
     return true
 }
 
-fun setWordIgnoreList(context: Context, list: Collection<String>) {
+fun setWordExclusions(context: Context, list: Collection<String>) {
+    excludedWords = null
     val json = Json.encodeToString(list)
     // todo: when adding a word, it should be removed from db, but also from suggestions of existing entries -> this will be awful
     context.prefs().edit { putString(PREF_WORD_EXCLUSIONS, json) }
 }
 
-// todo: test whether there should be a cache, or is performance ok?
-fun getWordIgnoreList(context: Context): Set<String> {
+fun getWordExclusions(context: Context): Set<String> {
+    excludedWords?.let { return it }
     val json = context.prefs().getString(PREF_WORD_EXCLUSIONS, "[]") ?: "[]"
-    if (json.isEmpty()) return sortedSetOf()
-    return Json.decodeFromString<List<String>>(json).toSortedSet(compareBy(String.CASE_INSENSITIVE_ORDER) { it })
+    excludedWords = if (json.isEmpty()) sortedSetOf()
+    else Json.decodeFromString<List<String>>(json).toSortedSet(compareBy(String.CASE_INSENSITIVE_ORDER) { it })
+    return excludedWords!!
 }
+
+private var excludedWords: SortedSet<String>? = null
 
 fun setAppExclusionList(context: Context, list: Collection<String>) {
     context.prefs().edit { putString(PREF_APP_EXCLUSIONS, list.joinToString(",")) }
@@ -343,10 +339,11 @@ class WordData(
             if (word.mScore < 0 && filteredSuggestions.size > 5)
                 continue // no need to add bad matches
             if (filteredSuggestions.any { it.mWord == word.mWord })
-                continue // only one occurrence per word
+                continue // only first occurrence word, todo: ask whether this is ok!
             if (filteredSuggestions.size > 12)
                 continue // should be enough
-            // todo: remove blocked words
+            if (!activeMode && word.mWord in getWordExclusions(context))
+                continue // keep blocked suggestions in active mode because otherwise one might find out which word is blocked
             filteredSuggestions.add(word)
         }
         val data = GestureData(
@@ -398,7 +395,7 @@ class WordData(
         val isEmailField = InputTypeUtils.isEmailVariation(inputAttributes.mInputType and InputType.TYPE_MASK_VARIATION)
         if (inputAttributes.mIsPasswordField || inputAttributes.mNoLearning || isEmailField)
             return false // probably some more inputAttributes to consider
-        val ignoreWords = getWordIgnoreList(context)
+        val ignoreWords = getWordExclusions(context)
         // how to deal with the ignore list?
         // check targetWord and first 5 suggestions?
         // or check only what is in the actually saved suggestions?
@@ -416,7 +413,7 @@ data class GestureDataInfo(val id: Long, val targetWord: String, val timestamp: 
 data class GestureData(
     val application: String,
     val knownLibrary: Boolean?,
-    val targetWord: String?, // this will be tricky for active gathering if user corrects the word
+    val targetWord: String?,
     val dictionaries: List<DictInfo>,
     val suggestions: List<Suggestion>,
     val gesture: List<PointerData>,

@@ -153,14 +153,14 @@ private fun isPassiveGatheringUsed(context: Context, editorInfo: EditorInfo): Bo
     val isEmailField = InputTypeUtils.isEmailVariation(inputAttributes.mInputType and InputType.TYPE_MASK_VARIATION)
     if (inputAttributes.mIsPasswordField || inputAttributes.mNoLearning || isEmailField) return false
     if (isForbiddenForDataGathering(editorInfo.packageName, context)) return false
-    // todo: if no known dict return false?
+    // we might not have a known dictionary, but I guess that's acceptable
     return true
 }
 
 fun setWordExclusions(context: Context, list: Collection<String>) {
     excludedWords = null
     val json = Json.encodeToString(list)
-    // todo: when adding a word, it should be removed from db, but also from suggestions of existing entries -> this will be awful
+    // todo: when excluding a word, it should be removed from db, but also from suggestions of existing entries -> this will be awful
     context.prefs().edit { putString(PREF_WORD_EXCLUSIONS, json) }
 }
 

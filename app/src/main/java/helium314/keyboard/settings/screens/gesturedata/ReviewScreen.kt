@@ -72,6 +72,7 @@ import java.util.Date
 // functionality for gesture data gathering as part of the NLNet Project https://nlnet.nl/project/GestureTyping/
 // will be removed once the project is finished
 
+// todo: recommend users can review data with swipe-o-scope, can check and blacklist there (send to yourself!)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ReviewScreen(

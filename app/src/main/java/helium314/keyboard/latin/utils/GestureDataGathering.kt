@@ -61,10 +61,28 @@ fun setPassiveGatheringEnabled(prefs: SharedPreferences, enabled: Boolean) =
 //  and shortcuts (emoji dicts and others)
 // todo: non-empty cache should change color of "recording" icon
 //  icon needs to be described in the text (and maybe have some dark outline in case user has red keyboard)
+//  maybe just make it a ring instead, i think that's nicer
 // todo: optional toolbar button to stop collection (forever, for 5 min or whatever)
 //  should also clear the cache
 //  describe button in the infotext
-// todo: describe in info text exactly what is stored
+//  show the toolbar key only if passive gathering setting is enabled, to avoid confusion
+//  hmm, but it could also just be the incognito key -> this still needs to clear the cache when switched on!
+// todo: explanation text
+//   include / exclude apps (included are accent colored + checkmark, others are red + x)
+//   exclude words: simple list -> word will not be saved (passive data gathering only!)
+//   data is filtered when saving, and in case of words also when exporting
+//   what is not saved?
+//    user-choices obviously
+//    text fields marked as passwords (but there is no glide typing anyway)
+//    text fields asking "no learning"
+//    email text fields
+//    mIncognitoModeEnabled
+//    excluded word in top suggestions
+//   recommend users can review data with swipe-o-scope, can check and blacklist there (send to yourself!)
+//   icon at the bottom of the keyboard when passive data gathering may record data (at least for now)
+//    icon is empty if nothing recorded for this session / text field
+//    icon is filled if a words are ready to be saved -> will happen when switching text field, closing keyboard, some other cases
+//    clear that cache by entering incognito mode (via toolbar key)
 object PassiveGatheringCache {
     private val cachedWords = mutableListOf<WordData>()
     private const val TAG = "PassiveGathering"
@@ -83,12 +101,10 @@ object PassiveGatheringCache {
         Log.i(TAG, "picked ${suggestion.word} instead of $originalWord after gesturing")
         val lastEntry = cachedWords.lastOrNull()
         if (lastEntry == null) {
-            // log message?
             Log.w(TAG, "...but cache is empty")
             return
         }
         if (lastEntry.usedWord != originalWord) {
-            // log message?
             Log.w(TAG, "...but our last word is ${lastEntry.usedWord}, not $originalWord")
             return
         }
@@ -161,7 +177,9 @@ fun setWordExclusions(context: Context, list: Collection<String>) {
     excludedWords = null
     val json = Json.encodeToString(list)
     // todo: when excluding a word, it should be removed from db, but also from suggestions of existing entries -> this will be awful
+    //  nah, better remove suggestions or filter on fetching the words
     context.prefs().edit { putString(PREF_WORD_EXCLUSIONS, json) }
+    scope.launch { GestureDataDao.getInstance(context)?.deletePassiveWords(list) }
 }
 
 fun getWordExclusions(context: Context): Set<String> {

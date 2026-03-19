@@ -48,7 +48,6 @@ import androidx.core.graphics.drawable.toBitmap
 import helium314.keyboard.latin.AppsManager
 import helium314.keyboard.latin.R
 import helium314.keyboard.latin.utils.DeleteButton
-import helium314.keyboard.latin.utils.GestureDataDao
 import helium314.keyboard.latin.utils.dpToPx
 import helium314.keyboard.latin.utils.getAppExclusionList
 import helium314.keyboard.latin.utils.getAppIncludeByDefault

@@ -101,10 +101,7 @@ import helium314.keyboard.latin.utils.getExportedActiveDeletionCount
 import helium314.keyboard.latin.utils.getSecondaryLocales
 import helium314.keyboard.latin.utils.locale
 import helium314.keyboard.settings.DropDownField
-import helium314.keyboard.latin.utils.NextScreenIcon
-import helium314.keyboard.latin.utils.Theme
 import helium314.keyboard.latin.utils.appendLink
-import helium314.keyboard.latin.utils.dpToPx
 import helium314.keyboard.settings.SettingsDestination
 import helium314.keyboard.settings.dialogs.ConfirmationDialog
 import helium314.keyboard.settings.dialogs.InfoDialog

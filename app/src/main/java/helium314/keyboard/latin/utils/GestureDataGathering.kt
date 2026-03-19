@@ -92,6 +92,9 @@ object PassiveGatheringCache {
         // initial target word is first (modified) suggestion, may have different capitalization
         // -> target word as var so we can update it?
         Log.i(TAG, "adding ${word.usedWord}")
+        // todo: we cache the word before checking, so we better keep track for cases like onPickSuggestionAfterGesturing
+        //  and also because we don't have access to context where addWord is called, which is used for isSavingOk
+        //  (but we may need / get context anyway when we want to change the recording icon
         cachedWords.add(word)
     }
 

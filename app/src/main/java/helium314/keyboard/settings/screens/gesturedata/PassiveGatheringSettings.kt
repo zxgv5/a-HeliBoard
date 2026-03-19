@@ -85,7 +85,7 @@ fun PassiveGatheringSettings() {
         Switch(passiveGathering, { passiveGathering = it; setPassiveGatheringEnabled(ctx.prefs(), it) })
     }
     ButtonWithText(stringResource(R.string.gesture_data_passive_gathering_info), Modifier.fillMaxWidth()) { showInfoDialog = true }
-    ButtonWithText(stringResource(R.string.gesture_data_passive_gathering_info_message), Modifier.fillMaxWidth()) { showExcludedWordsDialog = true }
+    ButtonWithText(stringResource(R.string.gesture_data_passive_excluded_words_button), Modifier.fillMaxWidth()) { showExcludedWordsDialog = true }
     ButtonWithText(stringResource(R.string.gesture_data_passive_apps_button), Modifier.fillMaxWidth()) { showIncludedAppsDialog = true }
     if (showInfoDialog) {
         InfoDialog(stringResource(R.string.gesture_data_passive_gathering_info_message)) { showInfoDialog = false }
@@ -178,7 +178,7 @@ fun PassiveGatheringSettings() {
             properties = DialogProperties(dismissOnClickOutside = false)
         )
     }
-    if (showExcludedWordsDialog) { // todo: everything here
+    if (showExcludedWordsDialog) {
         var ignoreWords by remember { mutableStateOf(getWordExclusions(ctx)) }
         var newWord by remember { mutableStateOf(TextFieldValue()) }
         val scroll = rememberScrollState()

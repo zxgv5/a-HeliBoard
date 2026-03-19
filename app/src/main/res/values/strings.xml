@@ -1107,6 +1107,9 @@ New dictionary:
     <!-- Switch text for including apps by default
      string will probably be removed once data gathering is finished (end of 2026 latest) -->
     <string name="gesture_data_passive_apps_include_default">Include apps by default</string>
+    <!-- Button for opening list of words that will never be saved in passive data gathering
+     string will probably be removed once data gathering is finished (end of 2026 latest) -->
+    <string name="gesture_data_passive_excluded_words_button">Manage excluded words</string>
 
     <!-- new strings should go above the section for gesture data gathering -->
 </resources>

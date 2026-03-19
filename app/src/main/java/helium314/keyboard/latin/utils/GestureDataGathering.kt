@@ -209,7 +209,7 @@ fun getExportedActiveDeletionCount(context: Context) = context.prefs().getInt(PR
     val reminderShowNext = ctx.prefs().getLong(PREF_SHOW_REMINDER_DIALOG_NEXT, 0)
     val neverShow = promotionShowNext == Long.MAX_VALUE || reminderShowNext == Long.MAX_VALUE // user selected "don't show again"
         // we only show the dialog if the use actively loaded the gesture typing library (as opposed to having the lib in the system and HeliBoard as a system app)
-        || ctx.protectedPrefs().getString(Settings.PREF_LIBRARY_CHECKSUM, "").isNullOrEmpty()
+        || ctx.protectedPrefs().getString(Settings.PREF_LIBRARY_CHECKSUM, "").isNullOrEmpty() || !JniUtils.sHaveGestureLib
     var shouldShowReminder by remember { mutableStateOf(
         !neverShow && reminderShowNext < System.currentTimeMillis() && reminderShowNext > 0L
     ) }
@@ -283,6 +283,8 @@ private const val PREF_SHOW_REMINDER_DIALOG_NEXT = "gesture_data_show_reminder_d
 const val dictTestImeOption = "useTestDictionaryFacilitator,${BuildConfig.APPLICATION_ID}.${Constants.ImeOption.NO_FLOATING_GESTURE_PREVIEW}"
 
 var gestureDataActiveFacilitator: SingleDictionaryFacilitator? = null
+
+private val scope = CoroutineScope(Dispatchers.IO)
 
 // class for storing relevant information
 class WordData(
@@ -362,7 +364,7 @@ class WordData(
             activeMode,
             null
         )
-        dao.add(data, targetWord ?: usedWord, timestamp)
+        scope.launch { dao.add(data, targetWord ?: usedWord, timestamp) }
         informAboutTooManyPassiveModeWords(context, dao)
     }
 
@@ -509,8 +511,7 @@ class GestureDataDao(val db: Database) {
         return result
     }
 
-    fun getJsonData(ids: List<Long>): List<String> = synchronized(this) {
-        val result = mutableListOf<String>()
+    fun getJsonData(ids: List<Long>): Sequence<String> = synchronized(this) { sequence {
         db.readableDatabase.query(
             TABLE,
             arrayOf(COLUMN_DATA),
@@ -521,14 +522,12 @@ class GestureDataDao(val db: Database) {
             null
         ).use {
             while (it.moveToNext()) {
-                result.add(it.getString(0))
+                yield(it.getString(0))
             }
         }
-        return result
-    }
+    }}
 
-    fun getAllJsonData(): List<String> = synchronized(this) {
-        val result = mutableListOf<String>()
+    fun getAllJsonData(): Sequence<String> = synchronized(this) { sequence {
         db.readableDatabase.query(
             TABLE,
             arrayOf(COLUMN_DATA),
@@ -539,11 +538,10 @@ class GestureDataDao(val db: Database) {
             null
         ).use {
             while (it.moveToNext()) {
-                result.add(it.getString(0))
+                yield(it.getString(0))
             }
         }
-        return result
-    }
+    }}
 
     fun markAsExported(ids: List<Long>, context: Context) = synchronized(this) {
         if (ids.isEmpty()) return

@@ -484,4 +484,5 @@
     <string name="ask_later">Спросить позже</string>
     <string name="gesture_data_take_me_there">Перейти</string>
     <string name="prefs_bottom_row_scale">Масштаб нижнего ряда</string>
+    <string name="gesture_data_links">Информация о сборе данных о жестах:</string>
 </resources>

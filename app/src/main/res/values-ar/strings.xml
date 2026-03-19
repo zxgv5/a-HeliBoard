@@ -493,4 +493,5 @@
     <string name="gesture_data_take_me_there">خذني إلى هناك</string>
     <string name="timestamp_description">يمكنك إضافة مفتاح الطابع الزمني باستخدام تخطيط مخصص مع مفتاح \'timestamp\'، أو رمز المفتاح -10043</string>
     <string name="prefs_bottom_row_scale">مقياس الصف السفلي</string>
+    <string name="gesture_data_links">معلومات حول جمع بيانات الإيماءات في:</string>
 </resources>

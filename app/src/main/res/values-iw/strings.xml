@@ -492,4 +492,5 @@
     <string name="gesture_data_promotion_message">היי לך!\n מאחר והתקנת את ספריית ההקלדה במחוות, עשוי לעניין אותך גם המיזם של HeliBoard ליצירת ספריית הקלדה במחוות פתוחה במלואה. באפשרותך לסייע ע\"י נידוב נתוני הקלדה במחוות. למידע נוסף ניתן לבקר במסך איסוף נתוני ההקלדה במחוות.</string>
     <string name="gesture_data_reminder_message">היי לך!\n בעבר השתמשת באיסוף נתוני המחוות, אך לא הוספת נתונים מזה זמן מה. האם ברצונך לנדב נתונים שוב?</string>
     <string name="gesture_data_take_me_there">מעבר למסך כעת</string>
+    <string name="gesture_data_links">מידע על איסוף נתוני שימוש במחוות:</string>
 </resources>

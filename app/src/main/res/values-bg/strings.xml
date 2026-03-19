@@ -521,4 +521,5 @@
     <string name="ask_later">Питай ме по-късно</string>
     <string name="gesture_data_take_me_there">Заведи ме там</string>
     <string name="prefs_bottom_row_scale">Мащаб на долния ред</string>
+    <string name="gesture_data_links">Информация за събиране на данни за жестове на:</string>
 </resources>

@@ -72,7 +72,6 @@ import java.util.Date
 // functionality for gesture data gathering as part of the NLNet Project https://nlnet.nl/project/GestureTyping/
 // will be removed once the project is finished
 
-// todo: recommend users can review data with swipe-o-scope, can check and blacklist there (send to yourself!)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ReviewScreen(
@@ -102,18 +101,18 @@ fun ReviewScreen(
     var includeExported by rememberSaveable { mutableStateOf(false) }
     var startDate: Long? by rememberSaveable { mutableStateOf(null) }
     var endDate: Long? by rememberSaveable { mutableStateOf(null) }
-    fun sortWords() {
+    fun setAndSortWords(infos: List<GestureDataInfo>) {
         gestureDataInfos = if (sortByName) {
-            gestureDataInfos.sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER) { it.targetWord })
+            if (reverseSort) infos.sortedWith(compareByDescending(String.CASE_INSENSITIVE_ORDER) { it.targetWord })
+            else infos.sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER) { it.targetWord })
         } else {
-            gestureDataInfos.sortedBy { it.timestamp }
+            if (reverseSort) infos.sortedByDescending { it.timestamp }
+            else infos.sortedBy { it.timestamp }
         }
-        if (reverseSort)
-            gestureDataInfos = gestureDataInfos.reversed()
     }
     fun reloadGestureDataInfos() {
-        // todo: if slow, do in background or try returning a cursor (then sorting needs to be done by db)
-        gestureDataInfos = dao.filterInfos(
+        // todo: if slow, do in background, keep all entries in memory, or try returning a cursor (then sorting needs to be done by db)
+        val infos = dao.filterInfos(
             filter.text.takeIf { it.isNotEmpty() },
             startDate,
             endDate,
@@ -121,9 +120,8 @@ fun ReviewScreen(
             if (includeActive && includePassive) null else includeActive
         )
         selected = emptyList() // unselect on filter changes
-        sortWords()
+        setAndSortWords(infos)
     }
-    // todo: show "long-press to select" hint somewhere
     Scaffold(
         contentWindowInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Bottom),
         bottomBar = {
@@ -148,7 +146,6 @@ fun ReviewScreen(
                                 Text(stringResource(R.string.gesture_data_words_selected, wordcount))
                             }
                         }
-                        // todo: extra delete for exported, if there are any?
                         Button(
                             { showExportDialog = true},
                             colors = buttonColors,
@@ -200,6 +197,11 @@ fun ReviewScreen(
                         wordListState.scrollToItem(0)
                 }
             }
+            CompositionLocalProvider(
+                LocalTextStyle provides MaterialTheme.typography.bodySmall
+            ) {
+                Text(stringResource(R.string.gesture_data_long_press_select_hint), Modifier.padding(horizontal = 12.dp))
+            }
             LazyColumn(state = wordListState) {
                 items(gestureDataInfos, { it.id }) { item ->
                     //   each entry consists of word, time, active/passive, whether it's already exported
@@ -218,7 +220,7 @@ fun ReviewScreen(
                     reloadGestureDataInfos()
                 }
                 LaunchedEffect(reverseSort, sortByName) {
-                    sortWords()
+                    setAndSortWords(gestureDataInfos)
                 }
                 TopAppBar( // not in the scaffold, thus will not cover data column in wide screen layout
                     title = { Text(stringResource(R.string.gesture_data_review_screen_title)) },

@@ -223,7 +223,6 @@ fun PassiveGatheringSettings() {
             onConfirmed = {
                 addWord()
                 setWordExclusions(ctx, ignoreWords)
-                scope.launch { GestureDataDao.getInstance(ctx)?.deletePassiveWords(ignoreWords) }
             },
             confirmButtonText = stringResource(android.R.string.ok),
             properties = DialogProperties(dismissOnClickOutside = false)

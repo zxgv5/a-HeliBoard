@@ -57,15 +57,18 @@ import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import helium314.keyboard.latin.R
+import helium314.keyboard.latin.utils.GestureData
 import helium314.keyboard.latin.utils.GestureDataDao
 import helium314.keyboard.latin.utils.GestureDataInfo
 import helium314.keyboard.latin.utils.Theme
+import helium314.keyboard.latin.utils.addWordExclusion
 import helium314.keyboard.latin.utils.getWordExclusions
 import helium314.keyboard.latin.utils.previewDark
 import helium314.keyboard.settings.dialogs.ConfirmationDialog
 import helium314.keyboard.settings.dialogs.ThreeButtonAlertDialog
 import helium314.keyboard.settings.isWideScreen
 import kotlinx.coroutines.launch
+import kotlinx.serialization.json.Json
 import java.text.DateFormat
 import java.util.Date
 
@@ -346,9 +349,10 @@ fun ReviewScreen(
 
 @Composable
 private fun GestureDataEntry(gestureDataInfo: GestureDataInfo, selected: Boolean, anythingSelected: Boolean, onSelect: (Boolean) -> Unit) {
+    var showDetails by remember { mutableStateOf(false) }
     val modifier = if (!anythingSelected)
         Modifier.combinedClickable(
-            onClick = { }, // todo: what should happen? more info in a dialog? option to delete / add to exclusions?
+            onClick = { showDetails = true },
             // todo: swipe? could delete or add to exclusions (with undo bar, don't apply immediately)
             onLongClick = { onSelect(true) },
         )
@@ -378,6 +382,29 @@ private fun GestureDataEntry(gestureDataInfo: GestureDataInfo, selected: Boolean
                 modifier = Modifier.padding(top = 2.dp)
             )
         }
+    }
+    if (showDetails) {
+        val ctx = LocalContext.current
+        val jsonData = GestureDataDao.getInstance(ctx)?.getJsonData(listOf(gestureDataInfo.id))?.firstOrNull()
+        val data = runCatching { jsonData?.let { Json.decodeFromString<GestureData>(it) } }.getOrNull()
+        ThreeButtonAlertDialog(
+            onDismissRequest = { showDetails = false },
+            onConfirmed = {},
+            onNeutral = { addWordExclusion(ctx, gestureDataInfo.targetWord); showDetails = false },
+            neutralButtonText = "exclude word from passive gathering",
+            content = {
+                // todo
+                if (data == null) {
+                    Text("data not found, bug??")
+                } else {
+                    Column {
+                        Text("word: ${data.targetWord}")
+                        Text("suggestions: ${data.suggestions.map { it.word }}")
+                        Text("used dicts: ${data.dictionaries.map { "${it.type}:${it.language}" }}")
+                    }
+                }
+            }
+        )
     }
 }
 

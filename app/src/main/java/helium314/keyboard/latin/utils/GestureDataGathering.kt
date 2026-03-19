@@ -176,6 +176,10 @@ private fun isPassiveGatheringUsed(context: Context, editorInfo: EditorInfo): Bo
     return true
 }
 
+fun addWordExclusion(context: Context, exclusion: String) {
+    setWordExclusions(context, getWordExclusions(context) + exclusion)
+}
+
 fun setWordExclusions(context: Context, list: Collection<String>) {
     excludedWords = null
     val json = Json.encodeToString(list)

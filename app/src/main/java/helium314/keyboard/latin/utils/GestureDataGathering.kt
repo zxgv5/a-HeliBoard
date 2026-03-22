@@ -7,12 +7,14 @@ import android.view.inputmethod.EditorInfo
 import com.android.inputmethod.latin.BinaryDictionary
 import helium314.keyboard.keyboard.Keyboard
 import helium314.keyboard.keyboard.KeyboardSwitcher
+import helium314.keyboard.keyboard.internal.keyboard_parser.floris.KeyCode
 import helium314.keyboard.latin.BuildConfig
 import helium314.keyboard.latin.InputAttributes
 import helium314.keyboard.latin.NgramContext
 import helium314.keyboard.latin.R
 import helium314.keyboard.latin.SingleDictionaryFacilitator
 import helium314.keyboard.latin.SuggestedWords
+import helium314.keyboard.latin.SuggestedWords.SuggestedWordInfo.KIND_SHORTCUT
 import helium314.keyboard.latin.common.ComposedData
 import helium314.keyboard.latin.common.Constants
 import helium314.keyboard.latin.common.InputPointers
@@ -31,9 +33,7 @@ import kotlinx.serialization.Serializable
 fun isInActiveGatheringMode(editorInfo: EditorInfo) =
     dictTestImeOption == editorInfo.privateImeOptions && gestureDataActiveFacilitator != null
 
-// todo: check interaction with (inline) emoji search and shortcuts (emoji dicts and others)
-
-// todo: remove logging
+// todo: remove logging, it may contain sensitive data!
 object PassiveGatheringCache {
     private val cachedWords = mutableListOf<WordData>()
     private const val TAG = "PassiveGathering"
@@ -46,12 +46,16 @@ object PassiveGatheringCache {
     }
 
     fun addWord(word: WordData) {
-        // initial target word is first (modified) suggestion, may have different capitalization
-        // -> target word as var so we can update it?
-        Log.i(TAG, "adding ${word.usedWord}")
-        // todo: we cache the word before checking, so we better keep track for cases like onPickSuggestionAfterGesturing
-        //  and also because we don't have access to context where addWord is called, which is used for isSavingOk
-        //  (but we may need / get context anyway when we want to change the recording icon
+        if (KeyboardSwitcher.getInstance().keyboard.mId.mInternalAction?.code == KeyCode.INLINE_EMOJI_SEARCH_DONE) {
+            // todo: does not work, when starting inline emoji search the code is not yet set
+            //  maybe the only way is to clear the cache after starting inline search
+            Log.i(TAG, "inline emoji search, not adding anything")
+            return
+        }
+        // todo: what to do with shortcuts? we'll at least need to store the info, because there might be no connection between resulting word and gesture data
+        //  (actually we should process that when saving, right?)
+        Log.i(TAG, "adding ${word.usedWord}, ${word.suggestions.map { it.mWord + " / " + (it.mKindAndFlags and 0xFF == KIND_SHORTCUT) }}")
+        // we cache the word before checking whether it can be saved because we don't have context
         cachedWords.add(word)
         updateIcon()
     }
@@ -66,6 +70,7 @@ object PassiveGatheringCache {
             return
         }
         if (lastEntry.usedWord != originalWord) {
+            // may happen when we skip something in addWord
             Log.w(TAG, "...but our last word is ${lastEntry.usedWord}, not $originalWord")
             return
         }
@@ -93,7 +98,8 @@ object PassiveGatheringCache {
     }
 
     fun onEdit(word: String) {
-        // todo: not sure whether this should be kept, because repeated backspace might remove different words
+        // this is pretty aggressive, because repeated backspace might remove different words
+        // but better remove a few % of the words instead of having potentially bad data
         Log.i(TAG, "edit something in $word")
         cachedWords.removeAll { it.usedWord == word }
         updateIcon()
@@ -132,9 +138,9 @@ private fun isPassiveGatheringUsed(context: Context, editorInfo: EditorInfo): Bo
     if (Settings.getValues().mIncognitoModeEnabled) return false
     val inputAttributes = InputAttributes(editorInfo, false, "")
     // allow TYPE_CLASS_TEXT and undefined (0)
-    if (inputAttributes.mInputType and InputType.TYPE_CLASS_PHONE != 0) return false
-    if (inputAttributes.mInputType and InputType.TYPE_CLASS_NUMBER != 0) return false
-    if (inputAttributes.mInputType and InputType.TYPE_CLASS_DATETIME != 0) return false
+    if (inputAttributes.mInputType and InputType.TYPE_MASK_CLASS == InputType.TYPE_CLASS_PHONE) return false
+    if (inputAttributes.mInputType and InputType.TYPE_MASK_CLASS == InputType.TYPE_CLASS_NUMBER) return false
+    if (inputAttributes.mInputType and InputType.TYPE_MASK_CLASS == InputType.TYPE_CLASS_DATETIME) return false
     val isEmailField = InputTypeUtils.isEmailVariation(inputAttributes.mInputType and InputType.TYPE_MASK_VARIATION)
     if (inputAttributes.mIsPasswordField || inputAttributes.mNoLearning || isEmailField) return false
     if (GestureDataGatheringSettings.isForbiddenForDataGathering(editorInfo.packageName, context)) return false
@@ -157,7 +163,9 @@ class WordData(
     val keyboard: Keyboard,
     val inputStyle: Int,
     val activeMode: Boolean,
-    var usedWord: String? = null // first suggestion in passive gathering, used to track later changes (not saved)
+    // first suggestion in passive gathering, used to track later changes (not saved)
+    // may have different capitalization compared to suggestions
+    var usedWord: String? = null
 ) {
     // keyboard is not immutable, so better store potentially relevant information immediately
     private val keys = keyboard.sortedKeys

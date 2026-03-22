@@ -52,9 +52,7 @@ object PassiveGatheringCache {
             Log.i(TAG, "inline emoji search, not adding anything")
             return
         }
-        // todo: what to do with shortcuts? we'll at least need to store the info, because there might be no connection between resulting word and gesture data
-        //  (actually we should process that when saving, right?)
-        Log.i(TAG, "adding ${word.usedWord}, ${word.suggestions.map { it.mWord + " / " + (it.mKindAndFlags and 0xFF == KIND_SHORTCUT) }}")
+        Log.i(TAG, "adding ${word.usedWord}")
         // we cache the word before checking whether it can be saved because we don't have context
         cachedWords.add(word)
         updateIcon()
@@ -252,13 +250,16 @@ class WordData(
         val isEmailField = InputTypeUtils.isEmailVariation(inputAttributes.mInputType and InputType.TYPE_MASK_VARIATION)
         if (inputAttributes.mIsPasswordField || inputAttributes.mNoLearning || isEmailField)
             return false // probably some more inputAttributes to consider
+        if (suggestions.first().mSourceDict.mDictType == Dictionary.TYPE_CONTACTS)
+            return false
+        val matchingSuggestions = suggestions.filter { it.mWord == (targetWord ?: usedWord) }
+        if (matchingSuggestions.none { it.mKindAndFlags and 0xFF != KIND_SHORTCUT })
+            return false
         val ignoreWords = GestureDataGatheringSettings.getWordExclusions(context)
         // how to deal with the ignore list?
         // check targetWord and first 5 suggestions?
         // or check only what is in the actually saved suggestions?
         if (usedWord in ignoreWords || suggestions.take(5).any { it.word in ignoreWords })
-            return false
-        if (suggestions.first().mSourceDict.mDictType == Dictionary.TYPE_CONTACTS)
             return false
         return true
     }

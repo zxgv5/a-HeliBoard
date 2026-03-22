@@ -35,8 +35,8 @@ fun setToolbarButtonsActivatedStateOnPrefChange(buttonsGroup: ViewGroup, key: St
     // settings need to be updated when buttons change
     if (key != Settings.PREF_AUTO_CORRECTION
         && key != Settings.PREF_ALWAYS_INCOGNITO_MODE
-        && key != PREF_PASSIVE_ENABLED
-        && key != PREF_PASSIVE_DISABLED_BEFORE
+        && key != GestureDataGatheringSettings.PREF_PASSIVE_ENABLED
+        && key != GestureDataGatheringSettings.PREF_PASSIVE_DISABLED_BEFORE
         && key?.startsWith(Settings.PREF_ONE_HANDED_MODE_PREFIX) == false)
         return
 

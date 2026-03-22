@@ -48,16 +48,9 @@ import androidx.core.graphics.drawable.toBitmap
 import helium314.keyboard.latin.AppsManager
 import helium314.keyboard.latin.R
 import helium314.keyboard.latin.utils.DeleteButton
+import helium314.keyboard.latin.utils.GestureDataGatheringSettings
 import helium314.keyboard.latin.utils.dpToPx
-import helium314.keyboard.latin.utils.getAppExclusions
-import helium314.keyboard.latin.utils.getAppIncludeByDefault
-import helium314.keyboard.latin.utils.getWordExclusions
-import helium314.keyboard.latin.utils.isPassiveGatheringEnabled
 import helium314.keyboard.latin.utils.prefs
-import helium314.keyboard.latin.utils.setAppExclusions
-import helium314.keyboard.latin.utils.setAppIncludeByDefault
-import helium314.keyboard.latin.utils.setPassiveGatheringEnabled
-import helium314.keyboard.latin.utils.setWordExclusions
 import helium314.keyboard.settings.dialogs.InfoDialog
 import helium314.keyboard.settings.dialogs.ThreeButtonAlertDialog
 import kotlinx.coroutines.launch
@@ -69,7 +62,7 @@ import kotlin.collections.plus
 @Composable
 fun PassiveGatheringSettings() {
     val ctx = LocalContext.current
-    var passiveGathering by remember { mutableStateOf(isPassiveGatheringEnabled(ctx.prefs())) }
+    var passiveGathering by remember { mutableStateOf(GestureDataGatheringSettings.isPassiveGatheringEnabled(ctx.prefs())) }
     var showInfoDialog by remember { mutableStateOf(false) }
     var showExcludedWordsDialog by remember { mutableStateOf(false) }
     var showIncludedAppsDialog by remember { mutableStateOf(false) }
@@ -81,12 +74,33 @@ fun PassiveGatheringSettings() {
             .fillMaxWidth()
     ) {
         Text(stringResource(R.string.gesture_data_passive_gathering))
-        Switch(passiveGathering, { passiveGathering = it; setPassiveGatheringEnabled(ctx.prefs(), it) })
+        Switch(passiveGathering, { passiveGathering = it; GestureDataGatheringSettings.setPassiveGatheringEnabled(ctx.prefs(), it) })
     }
     ButtonWithText(stringResource(R.string.gesture_data_passive_gathering_info), Modifier.fillMaxWidth()) { showInfoDialog = true }
     ButtonWithText(stringResource(R.string.gesture_data_passive_excluded_words_button), Modifier.fillMaxWidth()) { showExcludedWordsDialog = true }
     ButtonWithText(stringResource(R.string.gesture_data_passive_apps_button), Modifier.fillMaxWidth()) { showIncludedAppsDialog = true }
     if (showInfoDialog) {
+        // todo: explanation text
+        //   include / exclude apps (included are accent colored + checkmark, others are red + x)
+        //   exclude words: simple list -> word will not be saved (passive data gathering only!)
+        //   data is filtered when saving, and in case of words also when exporting
+        //   what is not saved?
+        //    user-choices obviously
+        //    text fields marked as passwords (but there is no glide typing anyway)
+        //    text fields asking "no learning"
+        //    email text fields
+        //    mIncognitoModeEnabled
+        //    excluded word in top suggestions
+        //   recommend users can review data with swipe-o-scope, can check and blacklist there (send to yourself!)
+        //   icon at the bottom of the keyboard when passive data gathering may record data (at least for now)
+        //    icon is empty if nothing recorded for this session / text field
+        //    icon is filled if a words are ready to be saved -> will happen when switching text field, closing keyboard, some other cases
+        //    clear that cache by entering incognito mode or disabling passive gathering (via toolbar key / key code)
+        //  toolbar key for toggling passive gathering
+        //   only available if you at least once enabled the setting
+        //   press to toggle (clears cache)
+        //   long press to disable for 5 min (clears cache, gathering enabled on next input field change when the 5 min are over)
+        // todo: read over the other texts too, maybe need update
         InfoDialog(stringResource(R.string.gesture_data_passive_gathering_info_message)) { showInfoDialog = false }
     }
     var packageInfos by remember { mutableStateOf(emptyList<Triple<String, String, Drawable?>>()) }
@@ -96,8 +110,8 @@ fun PassiveGatheringSettings() {
             scope.launch { packageInfos = AppsManager(ctx).getPackagesWithNameAndIcon() }
     }
     if (showIncludedAppsDialog) {
-        var defaultInclude by remember { mutableStateOf(getAppIncludeByDefault(ctx)) }
-        var excludedPackages by remember { mutableStateOf(getAppExclusions(ctx)) }
+        var defaultInclude by remember { mutableStateOf(GestureDataGatheringSettings.getAppIncludeByDefault(ctx)) }
+        var excludedPackages by remember { mutableStateOf(GestureDataGatheringSettings.getAppExclusions(ctx)) }
         var sortedPackagesAndNames by remember { mutableStateOf(
             packageInfos
                 .sortedWith( compareBy({ it.first !in excludedPackages }, { it.second.lowercase() }))
@@ -117,7 +131,7 @@ fun PassiveGatheringSettings() {
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Text(stringResource(R.string.gesture_data_passive_apps_include_default))
-                    Switch(checked = defaultInclude, onCheckedChange = { defaultInclude = it; setAppIncludeByDefault(ctx, it) })
+                    Switch(checked = defaultInclude, onCheckedChange = { defaultInclude = it; GestureDataGatheringSettings.setAppIncludeByDefault(ctx, it) })
                 }
                 TextField(
                     value = filter,
@@ -171,14 +185,14 @@ fun PassiveGatheringSettings() {
                 }
             } },
             onConfirmed = {
-                setAppExclusions(ctx, excludedPackages)
+                GestureDataGatheringSettings.setAppExclusions(ctx, excludedPackages)
             },
             confirmButtonText = stringResource(android.R.string.ok),
             properties = DialogProperties(dismissOnClickOutside = false)
         )
     }
     if (showExcludedWordsDialog) {
-        var ignoreWords by remember { mutableStateOf(getWordExclusions(ctx)) }
+        var ignoreWords by remember { mutableStateOf(GestureDataGatheringSettings.getWordExclusions(ctx)) }
         var newWord by remember { mutableStateOf(TextFieldValue()) }
         val scroll = rememberScrollState()
         fun addWord() {
@@ -221,7 +235,7 @@ fun PassiveGatheringSettings() {
             } },
             onConfirmed = {
                 addWord()
-                setWordExclusions(ctx, ignoreWords)
+                GestureDataGatheringSettings.setWordExclusions(ctx, ignoreWords)
             },
             confirmButtonText = stringResource(android.R.string.ok),
             properties = DialogProperties(dismissOnClickOutside = false)

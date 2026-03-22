@@ -87,6 +87,7 @@ import helium314.keyboard.latin.settings.Settings
 import helium314.keyboard.latin.utils.ChecksumCalculator
 import helium314.keyboard.latin.utils.DictionaryInfoUtils
 import helium314.keyboard.latin.utils.GestureDataDao
+import helium314.keyboard.latin.utils.GestureDataGatheringSettings
 import helium314.keyboard.latin.utils.NextScreenIcon
 import helium314.keyboard.latin.utils.ScriptUtils
 import helium314.keyboard.latin.utils.SubtypeLocaleUtils
@@ -97,7 +98,6 @@ import helium314.keyboard.latin.utils.UncachedInputMethodManagerUtils
 import helium314.keyboard.latin.utils.WordData
 import helium314.keyboard.latin.utils.dictTestImeOption
 import helium314.keyboard.latin.utils.gestureDataActiveFacilitator
-import helium314.keyboard.latin.utils.getExportedActiveDeletionCount
 import helium314.keyboard.latin.utils.getSecondaryLocales
 import helium314.keyboard.latin.utils.locale
 import helium314.keyboard.settings.DropDownField
@@ -333,7 +333,7 @@ fun GestureDataScreen(
                     buttons()
                     texts()
                 }
-                val exportedAndDeletedCount by remember { mutableIntStateOf(getExportedActiveDeletionCount(ctx)) }
+                val exportedAndDeletedCount by remember { mutableIntStateOf(GestureDataGatheringSettings.getExportedActiveDeletionCount(ctx)) }
                 val oldActiveWords by remember {
                     sessionWordCount = 0
                     dbActiveWordCount = dao.count(activeMode = true)

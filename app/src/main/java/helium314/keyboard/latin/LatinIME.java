@@ -70,6 +70,7 @@ import helium314.keyboard.latin.suggestions.SuggestionStripViewAccessor;
 import helium314.keyboard.latin.touchinputconsumer.GestureConsumer;
 import helium314.keyboard.latin.utils.ColorUtilKt;
 import helium314.keyboard.latin.utils.GestureDataGatheringKt;
+import helium314.keyboard.latin.utils.GestureDataGatheringSettings;
 import helium314.keyboard.latin.utils.InlineAutofillUtils;
 import helium314.keyboard.latin.utils.InputMethodPickerKt;
 import helium314.keyboard.latin.utils.JniUtils;
@@ -1851,7 +1852,7 @@ public class LatinIME extends InputMethodService implements
             boolean usePassive = GestureDataGatheringKt.setUsePassiveGathering(this, editorInfo);
             mKeyboardSwitcher.setPassiveGatheringIndicator(usePassive, false);
         }
-        GestureDataGatheringKt.showEndNotificationIfNecessary(this); // will do nothing for a long time
+        GestureDataGatheringSettings.INSTANCE.showEndNotificationIfNecessary(this); // will do nothing for a long time
         mInputLogic.setFacilitator(mDictionaryFacilitator);
     }
 }

@@ -59,10 +59,9 @@ import androidx.compose.ui.unit.dp
 import helium314.keyboard.latin.R
 import helium314.keyboard.latin.utils.GestureData
 import helium314.keyboard.latin.utils.GestureDataDao
+import helium314.keyboard.latin.utils.GestureDataGatheringSettings
 import helium314.keyboard.latin.utils.GestureDataInfo
 import helium314.keyboard.latin.utils.Theme
-import helium314.keyboard.latin.utils.addWordExclusion
-import helium314.keyboard.latin.utils.getWordExclusions
 import helium314.keyboard.latin.utils.previewDark
 import helium314.keyboard.settings.dialogs.ConfirmationDialog
 import helium314.keyboard.settings.dialogs.ThreeButtonAlertDialog
@@ -322,7 +321,7 @@ fun ReviewScreen(
                 onDismissRequest = { showExportDialog = false },
                 content = {
                     val toShare = if (selected.isEmpty()) gestureDataInfos else gestureDataInfos.filter { it.id in selected }
-                    val toIgnore = getWordExclusions(ctx)
+                    val toIgnore = GestureDataGatheringSettings.getWordExclusions(ctx)
                     Column { ShareGestureData(toShare.filterNot { it.targetWord in toIgnore }.map { it.id }) }
                     reloadGestureDataInfos()
                 },
@@ -390,7 +389,7 @@ private fun GestureDataEntry(gestureDataInfo: GestureDataInfo, selected: Boolean
         ThreeButtonAlertDialog(
             onDismissRequest = { showDetails = false },
             onConfirmed = {},
-            onNeutral = { addWordExclusion(ctx, gestureDataInfo.targetWord); showDetails = false },
+            onNeutral = { GestureDataGatheringSettings.addWordExclusion(ctx, gestureDataInfo.targetWord); showDetails = false },
             neutralButtonText = "exclude word from passive gathering",
             content = {
                 // todo

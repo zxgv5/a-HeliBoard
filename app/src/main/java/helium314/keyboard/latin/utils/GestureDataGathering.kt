@@ -99,6 +99,11 @@ object PassiveGatheringCache {
     private const val TAG = "PassiveGathering"
     private val scope = CoroutineScope(Dispatchers.IO)
 
+    private fun updateIcon() {
+        scope.launch(Dispatchers.Main) { // on main thread to avoid exception
+            KeyboardSwitcher.getInstance().setPassiveGatheringIndicator(usePassiveGathering, cachedWords.isNotEmpty())
+        }
+    }
     fun addWord(word: WordData) {
         // initial target word is first (modified) suggestion, may have different capitalization
         // -> target word as var so we can update it?
@@ -107,6 +112,7 @@ object PassiveGatheringCache {
         //  and also because we don't have access to context where addWord is called, which is used for isSavingOk
         //  (but we may need / get context anyway when we want to change the recording icon
         cachedWords.add(word)
+        updateIcon()
     }
 
     fun onPickSuggestionAfterGesturing(suggestion: SuggestedWords.SuggestedWordInfo, originalWord: String) {
@@ -142,12 +148,15 @@ object PassiveGatheringCache {
             return
         }
         cachedWords.removeAt(cachedWords.lastIndex)
+        updateIcon()
     }
 
     fun onEdit(word: String) {
         // todo: not sure whether this should be kept, because repeated backspace might remove different words
+        // todo: this is not triggered when it probably should be
         Log.i(TAG, "edit something in $word")
         cachedWords.removeAll { it.usedWord == word }
+        updateIcon()
     }
 
     fun flush(context: Context) {
@@ -155,6 +164,7 @@ object PassiveGatheringCache {
         val words = cachedWords.toList()
         Log.i(TAG, "flush cache")
         cachedWords.clear()
+        updateIcon()
         scope.launch { words.forEach { it.save(context) } }
     }
 
@@ -162,6 +172,7 @@ object PassiveGatheringCache {
         // just clear it without saving
         Log.i(TAG, "clear cache")
         cachedWords.clear()
+        updateIcon()
     }
 }
 

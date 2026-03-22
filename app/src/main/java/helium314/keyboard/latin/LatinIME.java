@@ -1843,13 +1843,13 @@ public class LatinIME extends InputMethodService implements
         if (GestureDataGatheringKt.isInActiveGatheringMode(editorInfo)) {
             mDictionaryFacilitator = GestureDataGatheringKt.getGestureDataActiveFacilitator();
             GestureDataGatheringKt.usePassiveGathering = false;
-            mKeyboardSwitcher.setPassiveGatheringIndicator(false);
+            mKeyboardSwitcher.setPassiveGatheringIndicator(false, false);
         } else {
             mDictionaryFacilitator = mOriginalDictionaryFacilitator;
 
             // no active mode, check for passive mode
             boolean usePassive = GestureDataGatheringKt.setUsePassiveGathering(this, editorInfo);
-            mKeyboardSwitcher.setPassiveGatheringIndicator(usePassive);
+            mKeyboardSwitcher.setPassiveGatheringIndicator(usePassive, false);
         }
         GestureDataGatheringKt.showEndNotificationIfNecessary(this); // will do nothing for a long time
         mInputLogic.setFacilitator(mDictionaryFacilitator);

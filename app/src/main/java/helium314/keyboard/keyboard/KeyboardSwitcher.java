@@ -22,6 +22,7 @@ import android.view.inputmethod.EditorInfo;
 import android.view.inputmethod.InputMethodSubtype;
 import android.widget.FrameLayout;
 import android.widget.HorizontalScrollView;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -595,9 +596,10 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
         }, timeMillis);
     }
 
-    public void setPassiveGatheringIndicator(boolean enabled) {
-        mCurrentInputView.findViewById(R.id.passiveGatheringIndicator)
-            .setVisibility(enabled ? View.VISIBLE: View.GONE);
+    public void setPassiveGatheringIndicator(boolean enabled, boolean hasData) {
+        ImageView view = mCurrentInputView.findViewById(R.id.passiveGatheringIndicator);
+        view.setVisibility(enabled ? View.VISIBLE: View.GONE);
+        view.setImageResource(hasData ? R.drawable.btn_keyboard_key_action_normal_lxx_base : R.drawable.ring);
     }
 
     // Implements {@link KeyboardState.SwitchActions}.

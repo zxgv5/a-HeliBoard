@@ -27,6 +27,9 @@ import helium314.keyboard.latin.inputlogic.InputLogic
 import helium314.keyboard.latin.settings.Settings
 import helium314.keyboard.latin.utils.PassiveGatheringCache
 import helium314.keyboard.latin.utils.SubtypeSettings
+import helium314.keyboard.latin.utils.prefs
+import helium314.keyboard.latin.utils.tempDisablePassiveGathering
+import helium314.keyboard.latin.utils.togglePassiveGatheringEnabled
 import kotlin.math.abs
 import kotlin.math.min
 
@@ -103,6 +106,18 @@ class KeyboardActionListenerImpl(private val latinIME: LatinIME, private val inp
     override fun onCodeInput(primaryCode: Int, x: Int, y: Int, isKeyRepeat: Boolean) {
         when (primaryCode) {
             KeyCode.TOGGLE_AUTOCORRECT -> return settings.toggleAutoCorrect()
+            KeyCode.TOGGLE_PASSIVE_GATHERING -> {
+                togglePassiveGatheringEnabled(latinIME.prefs())
+                PassiveGatheringCache.clear() // clear data from current text field
+                latinIME.setGestureDataGatheringMode(latinIME.currentInputEditorInfo)
+                return
+            }
+            KeyCode.PASSIVE_GATHERING_TEMP_OFF -> {
+                tempDisablePassiveGathering(latinIME.prefs())
+                PassiveGatheringCache.clear() // clear data from current text field
+                latinIME.setGestureDataGatheringMode(latinIME.currentInputEditorInfo)
+                return
+            }
             KeyCode.TOGGLE_INCOGNITO_MODE -> {
                 settings.toggleAlwaysIncognitoMode()
                 PassiveGatheringCache.clear() // clear data from current text field

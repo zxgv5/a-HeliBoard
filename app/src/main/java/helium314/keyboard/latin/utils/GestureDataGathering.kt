@@ -52,21 +52,28 @@ import kotlin.random.Random
 fun isInActiveGatheringMode(editorInfo: EditorInfo) =
     dictTestImeOption == editorInfo.privateImeOptions && gestureDataActiveFacilitator != null
 
-fun isPassiveGatheringEnabled(prefs: SharedPreferences) = prefs.getBoolean(PREF_PASSIVE_ENABLED, false)
+fun isPassiveGatheringEnabled(prefs: SharedPreferences) =
+    prefs.getBoolean(PREF_PASSIVE_ENABLED, false)
+        && System.currentTimeMillis() > prefs.getLong(PREF_PASSIVE_DISABLED_BEFORE, 0L)
 
-fun setPassiveGatheringEnabled(prefs: SharedPreferences, enabled: Boolean) =
-    prefs.edit { putBoolean(PREF_PASSIVE_ENABLED, enabled) }
+fun setPassiveGatheringEnabled(prefs: SharedPreferences, enabled: Boolean) = prefs.edit {
+    putBoolean(PREF_PASSIVE_ENABLED, enabled)
+    remove(PREF_PASSIVE_DISABLED_BEFORE)
+}
+
+fun togglePassiveGatheringEnabled(prefs: SharedPreferences) =
+    setPassiveGatheringEnabled(prefs, !isPassiveGatheringEnabled(prefs))
+
+fun tempDisablePassiveGathering(prefs: SharedPreferences) {
+    // disable for 5 min
+    prefs.edit { putLong(PREF_PASSIVE_DISABLED_BEFORE, System.currentTimeMillis() + 5 * 60 * 1000L) }
+}
 
 // todo: check interaction with (inline) emoji search
 //  and shortcuts (emoji dicts and others)
 // todo: non-empty cache should change color of "recording" icon
 //  icon needs to be described in the text (and maybe have some dark outline in case user has red keyboard)
 //  maybe just make it a ring instead, i think that's nicer
-// todo: optional toolbar button to stop collection (forever, for 5 min or whatever)
-//  should also clear the cache
-//  describe button in the infotext
-//  show the toolbar key only if passive gathering setting is enabled, to avoid confusion
-//  hmm, but it could also just be the incognito key -> this still needs to clear the cache when switched on!
 // todo: explanation text
 //   include / exclude apps (included are accent colored + checkmark, others are red + x)
 //   exclude words: simple list -> word will not be saved (passive data gathering only!)
@@ -82,7 +89,11 @@ fun setPassiveGatheringEnabled(prefs: SharedPreferences, enabled: Boolean) =
 //   icon at the bottom of the keyboard when passive data gathering may record data (at least for now)
 //    icon is empty if nothing recorded for this session / text field
 //    icon is filled if a words are ready to be saved -> will happen when switching text field, closing keyboard, some other cases
-//    clear that cache by entering incognito mode (via toolbar key)
+//    clear that cache by entering incognito mode or disabling passive gathering (via toolbar key / key code)
+//  toolbar key for toggling passive gathering
+//   only available if you at least once enabled the setting
+//   press to toggle (clears cache)
+//   long press to disable for 5 min (clears cache, gathering enabled on next input field change when the 5 min are over)
 object PassiveGatheringCache {
     private val cachedWords = mutableListOf<WordData>()
     private const val TAG = "PassiveGathering"
@@ -307,6 +318,7 @@ private const val PREF_APP_EXCLUSIONS_INCLUDE_BY_DEFAULT = "gesture_data_app_exc
 private const val PREF_DELETED_ACTIVE = "gesture_data_deleted_active_words"
 private const val PREF_PASSIVE_NOTIFY_COUNT = "gesture_data_passive_notify_count"
 const val PREF_PASSIVE_ENABLED = "gesture_data_passive_gathering_enabled"
+const val PREF_PASSIVE_DISABLED_BEFORE = "gesture_data_passive_gathering_disabled_before"
 private const val PREF_END_NOTIFICATION_LAST_SHOWN = "gesture_data_end_notification_shown"
 private const val PREF_SHOW_PROMOTION_DIALOG_NEXT = "gesture_data_show_promotion_dialog_next_time"
 private const val PREF_SHOW_REMINDER_DIALOG_NEXT = "gesture_data_show_reminder_dialog_next_time"

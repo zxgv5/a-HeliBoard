@@ -153,7 +153,6 @@ object PassiveGatheringCache {
 
     fun onEdit(word: String) {
         // todo: not sure whether this should be kept, because repeated backspace might remove different words
-        // todo: this is not triggered when it probably should be
         Log.i(TAG, "edit something in $word")
         cachedWords.removeAll { it.usedWord == word }
         updateIcon()

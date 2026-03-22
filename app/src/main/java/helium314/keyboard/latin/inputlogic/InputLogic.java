@@ -478,7 +478,7 @@ public final class InputLogic {
         mWordBeingCorrectedByCursor = null;
         mJustRevertedACommit = false;
 
-        if (GestureDataGatheringKt.usePassiveGathering && mWordComposer.isComposingWord() && mWordComposer.isCursorInFrontOfComposingWord())
+        if (GestureDataGatheringKt.usePassiveGathering && mWordComposer.isComposingWord() && mWordComposer.isCursorFrontOrMiddleOfComposingWord())
             PassiveGatheringCache.INSTANCE.onEdit(mWordComposer.getTypedWord());
 
         final Event processedEvent = mWordComposer.processEvent(event);

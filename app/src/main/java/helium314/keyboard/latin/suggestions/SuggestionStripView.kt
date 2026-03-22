@@ -63,6 +63,8 @@ import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.math.abs
 import kotlin.math.min
 import androidx.core.view.isGone
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.launch
 
 @SuppressLint("InflateParams")
 class SuggestionStripView(context: Context, attrs: AttributeSet?, defStyle: Int) :
@@ -290,7 +292,7 @@ class SuggestionStripView(context: Context, attrs: AttributeSet?, defStyle: Int)
         setToolbarButtonsActivatedStateOnPrefChange(pinnedKeys, key)
         setToolbarButtonsActivatedStateOnPrefChange(toolbar, key)
         if (key == Settings.PREF_ALWAYS_INCOGNITO_MODE)
-            updateKeys()
+            GlobalScope.launch { updateKeys() }
     }
 
     override fun onVisibilityChanged(view: View, visibility: Int) {

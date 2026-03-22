@@ -199,13 +199,18 @@ fun getWordExclusions(context: Context): Set<String> {
 
 private var excludedWords: SortedSet<String>? = null
 
-fun setAppExclusionList(context: Context, list: Collection<String>) {
+private var excludedApps: Set<String>? = null
+
+fun setAppExclusions(context: Context, list: Collection<String>) {
     context.prefs().edit { putString(PREF_APP_EXCLUSIONS, list.joinToString(",")) }
+    excludedApps = null
 }
 
-fun getAppExclusionList(context: Context): List<String> {
+fun getAppExclusions(context: Context): Collection<String> {
+    excludedApps?.let { return it }
     val string = context.prefs().getString(PREF_APP_EXCLUSIONS, "") ?: ""
-    return string.split(",").filterNot { it.isEmpty() }
+    excludedApps = string.split(",").filterNot { it.isEmpty() }.toHashSet()
+    return excludedApps!!
 }
 
 fun setAppIncludeByDefault(context: Context, value: Boolean) =
@@ -215,7 +220,7 @@ fun getAppIncludeByDefault(context: Context) =
     context.prefs().getBoolean(PREF_APP_EXCLUSIONS_INCLUDE_BY_DEFAULT, false)
 
 fun isForbiddenForDataGathering(packageName: String?, context: Context): Boolean {
-    val exclusions = getAppExclusionList(context)
+    val exclusions = getAppExclusions(context)
     return if (getAppIncludeByDefault(context)) packageName in exclusions
     else packageName !in exclusions
 }

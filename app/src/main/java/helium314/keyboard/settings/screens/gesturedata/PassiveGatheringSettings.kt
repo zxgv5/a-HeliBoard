@@ -49,12 +49,12 @@ import helium314.keyboard.latin.AppsManager
 import helium314.keyboard.latin.R
 import helium314.keyboard.latin.utils.DeleteButton
 import helium314.keyboard.latin.utils.dpToPx
-import helium314.keyboard.latin.utils.getAppExclusionList
+import helium314.keyboard.latin.utils.getAppExclusions
 import helium314.keyboard.latin.utils.getAppIncludeByDefault
 import helium314.keyboard.latin.utils.getWordExclusions
 import helium314.keyboard.latin.utils.isPassiveGatheringEnabled
 import helium314.keyboard.latin.utils.prefs
-import helium314.keyboard.latin.utils.setAppExclusionList
+import helium314.keyboard.latin.utils.setAppExclusions
 import helium314.keyboard.latin.utils.setAppIncludeByDefault
 import helium314.keyboard.latin.utils.setPassiveGatheringEnabled
 import helium314.keyboard.latin.utils.setWordExclusions
@@ -97,7 +97,7 @@ fun PassiveGatheringSettings() {
     }
     if (showIncludedAppsDialog) {
         var defaultInclude by remember { mutableStateOf(getAppIncludeByDefault(ctx)) }
-        var excludedPackages by remember { mutableStateOf(getAppExclusionList(ctx)) }
+        var excludedPackages by remember { mutableStateOf(getAppExclusions(ctx)) }
         var sortedPackagesAndNames by remember { mutableStateOf(
             packageInfos
                 .sortedWith( compareBy({ it.first !in excludedPackages }, { it.second.lowercase() }))
@@ -171,7 +171,7 @@ fun PassiveGatheringSettings() {
                 }
             } },
             onConfirmed = {
-                setAppExclusionList(ctx, excludedPackages)
+                setAppExclusions(ctx, excludedPackages)
             },
             confirmButtonText = stringResource(android.R.string.ok),
             properties = DialogProperties(dismissOnClickOutside = false)

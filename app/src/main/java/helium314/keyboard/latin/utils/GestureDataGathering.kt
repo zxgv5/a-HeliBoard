@@ -71,9 +71,6 @@ fun tempDisablePassiveGathering(prefs: SharedPreferences) {
 
 // todo: check interaction with (inline) emoji search
 //  and shortcuts (emoji dicts and others)
-// todo: non-empty cache should change color of "recording" icon
-//  icon needs to be described in the text (and maybe have some dark outline in case user has red keyboard)
-//  maybe just make it a ring instead, i think that's nicer
 // todo: explanation text
 //   include / exclude apps (included are accent colored + checkmark, others are red + x)
 //   exclude words: simple list -> word will not be saved (passive data gathering only!)
@@ -94,6 +91,7 @@ fun tempDisablePassiveGathering(prefs: SharedPreferences) {
 //   only available if you at least once enabled the setting
 //   press to toggle (clears cache)
 //   long press to disable for 5 min (clears cache, gathering enabled on next input field change when the 5 min are over)
+// todo: read over the other texts too, maybe need update
 object PassiveGatheringCache {
     private val cachedWords = mutableListOf<WordData>()
     private const val TAG = "PassiveGathering"

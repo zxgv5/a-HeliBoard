@@ -145,6 +145,8 @@ fun ReviewScreen(
                                     stringResource(R.string.delete),
                                     Modifier.align(Alignment.CenterHorizontally).size(30.dp)
                                 )
+                                // todo: plurals, see https://stackoverflow.com/questions/41950952/how-to-use-android-quantity-strings-plurals
+                                //  make sure to keep existing translations alive
                                 Text(stringResource(R.string.gesture_data_words_selected, wordcount))
                             }
                         }

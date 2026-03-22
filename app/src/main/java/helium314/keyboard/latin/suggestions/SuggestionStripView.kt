@@ -289,6 +289,8 @@ class SuggestionStripView(context: Context, attrs: AttributeSet?, defStyle: Int)
     override fun onSharedPreferenceChanged(prefs: SharedPreferences, key: String?) {
         setToolbarButtonsActivatedStateOnPrefChange(pinnedKeys, key)
         setToolbarButtonsActivatedStateOnPrefChange(toolbar, key)
+        if (key == Settings.PREF_ALWAYS_INCOGNITO_MODE)
+            updateKeys()
     }
 
     override fun onVisibilityChanged(view: View, visibility: Int) {
@@ -332,7 +334,6 @@ class SuggestionStripView(context: Context, attrs: AttributeSet?, defStyle: Int)
             if (code != KeyCode.UNSPECIFIED) {
                 Log.d(TAG, "click toolbar key $tag")
                 listener.onCodeInput(code, Constants.SUGGESTION_STRIP_COORDINATE, Constants.SUGGESTION_STRIP_COORDINATE, false)
-                if (tag === ToolbarKey.INCOGNITO) updateKeys() // update expand key icon
                 return
             }
         }

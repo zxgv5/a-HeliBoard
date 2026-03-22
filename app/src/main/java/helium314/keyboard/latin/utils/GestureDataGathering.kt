@@ -169,6 +169,7 @@ private fun isPassiveGatheringUsed(context: Context, editorInfo: EditorInfo): Bo
     if (!isPassiveGatheringEnabled(context.prefs())) return false
     if (Settings.getValues().mIncognitoModeEnabled) return false
     val inputAttributes = InputAttributes(editorInfo, false, "")
+    if (inputAttributes.mInputType and InputType.TYPE_CLASS_TEXT == 0) return false // todo: allow for type null?
     val isEmailField = InputTypeUtils.isEmailVariation(inputAttributes.mInputType and InputType.TYPE_MASK_VARIATION)
     if (inputAttributes.mIsPasswordField || inputAttributes.mNoLearning || isEmailField) return false
     if (isForbiddenForDataGathering(editorInfo.packageName, context)) return false
@@ -305,7 +306,7 @@ private const val PREF_APP_EXCLUSIONS = "gesture_data_app_exclusions"
 private const val PREF_APP_EXCLUSIONS_INCLUDE_BY_DEFAULT = "gesture_data_app_exclusions_ignore_by_default"
 private const val PREF_DELETED_ACTIVE = "gesture_data_deleted_active_words"
 private const val PREF_PASSIVE_NOTIFY_COUNT = "gesture_data_passive_notify_count"
-private const val PREF_PASSIVE_ENABLED = "gesture_data_passive_gathering_enabled"
+const val PREF_PASSIVE_ENABLED = "gesture_data_passive_gathering_enabled"
 private const val PREF_END_NOTIFICATION_LAST_SHOWN = "gesture_data_end_notification_shown"
 private const val PREF_SHOW_PROMOTION_DIALOG_NEXT = "gesture_data_show_promotion_dialog_next_time"
 private const val PREF_SHOW_REMINDER_DIALOG_NEXT = "gesture_data_show_reminder_dialog_next_time"

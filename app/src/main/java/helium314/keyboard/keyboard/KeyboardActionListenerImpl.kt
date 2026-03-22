@@ -25,6 +25,7 @@ import helium314.keyboard.latin.common.loopOverCodePointsBackwards
 import helium314.keyboard.latin.define.ProductionFlags
 import helium314.keyboard.latin.inputlogic.InputLogic
 import helium314.keyboard.latin.settings.Settings
+import helium314.keyboard.latin.utils.PassiveGatheringCache
 import helium314.keyboard.latin.utils.SubtypeSettings
 import kotlin.math.abs
 import kotlin.math.min
@@ -102,7 +103,12 @@ class KeyboardActionListenerImpl(private val latinIME: LatinIME, private val inp
     override fun onCodeInput(primaryCode: Int, x: Int, y: Int, isKeyRepeat: Boolean) {
         when (primaryCode) {
             KeyCode.TOGGLE_AUTOCORRECT -> return settings.toggleAutoCorrect()
-            KeyCode.TOGGLE_INCOGNITO_MODE -> return settings.toggleAlwaysIncognitoMode()
+            KeyCode.TOGGLE_INCOGNITO_MODE -> {
+                settings.toggleAlwaysIncognitoMode()
+                PassiveGatheringCache.clear() // clear data from current text field
+                latinIME.setGestureDataGatheringMode(latinIME.currentInputEditorInfo)
+                return
+            }
         }
         val mkv = keyboardSwitcher.mainKeyboardView
 

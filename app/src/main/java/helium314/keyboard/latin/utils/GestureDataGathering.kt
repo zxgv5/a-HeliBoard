@@ -163,12 +163,6 @@ class WordData(
 
     private val packageName = keyboard.mId.mEditorInfo.packageName
 
-    // we want to store which dictionaries are used, and a dict index (in used dict list) for each suggestion
-    private var dictCount = 0
-    private val dictionariesInSuggestions = LinkedHashMap<Dictionary, Int>().apply { // linked because we need the order
-        suggestions.forEach { if (!containsKey(it.mSourceDict)) put(it.mSourceDict, dictCount++) }
-    }
-
     private val timestamp = System.currentTimeMillis()
 
     fun save(context: Context) {
@@ -206,17 +200,22 @@ class WordData(
                 continue // keep blocked suggestions in active mode because otherwise one might find out which word is blocked
             filteredSuggestions.add(word)
         }
+        // we want to store which dictionaries are used, and a dict index (in used dict list) for each suggestion
+        var dictCount = 0
+        val dictionariesInUsedSuggestions = LinkedHashMap<Dictionary, Int>().apply { // linked because we need the order
+            filteredSuggestions.forEach { if (!containsKey(it.mSourceDict)) put(it.mSourceDict, dictCount++) }
+        }
+
         val data = GestureData(
             context.getString(R.string.english_ime_name) + " " + BuildConfig.VERSION_NAME,
             if (!context.protectedPrefs().contains(Settings.PREF_LIBRARY_CHECKSUM)) null
                 else context.protectedPrefs().getString(Settings.PREF_LIBRARY_CHECKSUM, "") == JniUtils.expectedDefaultChecksum(),
             targetWord,
-            dictionariesInSuggestions.map { (dict, _) ->
+            dictionariesInUsedSuggestions.map { (dict, _) ->
                 val hash = (dict as? BinaryDictionary)?.hash ?: (dict as? ReadOnlyBinaryDictionary)?.hash
                 DictInfo(hash, dict.mDictType, dict.mLocale?.toLanguageTag())
             },
-            // todo: check whether the index really is correct!
-            filteredSuggestions.map { Suggestion(it.mWord, it.mScore, dictionariesInSuggestions[it.mSourceDict]) },
+            filteredSuggestions.map { Suggestion(it.mWord, it.mScore, dictionariesInUsedSuggestions[it.mSourceDict]) },
             PointerData.fromPointers(composedData.mInputPointers),
             keyboardInfo,
             activeMode,
@@ -230,7 +229,7 @@ class WordData(
     private fun isSavingOk(context: Context): Boolean {
         if (inputStyle != SuggestedWords.INPUT_STYLE_TAIL_BATCH)
             return false
-        if (activeMode && dictCount == 1)
+        if (activeMode && suggestions.all { it.mSourceDict == suggestions.first().mSourceDict })
             return true // active mode should be fine, the size check is just an addition in case there is a bug that sets the wrong mode or dictionary facilitator
         if (Settings.getValues().mIncognitoModeEnabled)
             return false // don't save in incognito mode
@@ -267,7 +266,11 @@ data class GestureData(
     val keyboardInfo: KeyboardInfo,
     val activeMode: Boolean,
     val uuid: String?
-)
+) {
+    init {
+//        Log.i()
+    }
+}
 
 // hash is only available for dictionaries from .dict files
 // language can be null (but should not be)

@@ -135,10 +135,7 @@ private fun isPassiveGatheringUsed(context: Context, editorInfo: EditorInfo): Bo
     if (!GestureDataGatheringSettings.isPassiveGatheringEnabled(context.prefs())) return false
     if (Settings.getValues().mIncognitoModeEnabled) return false
     val inputAttributes = InputAttributes(editorInfo, false, "")
-    // allow TYPE_CLASS_TEXT and undefined (0)
-    if (inputAttributes.mInputType and InputType.TYPE_MASK_CLASS == InputType.TYPE_CLASS_PHONE) return false
-    if (inputAttributes.mInputType and InputType.TYPE_MASK_CLASS == InputType.TYPE_CLASS_NUMBER) return false
-    if (inputAttributes.mInputType and InputType.TYPE_MASK_CLASS == InputType.TYPE_CLASS_DATETIME) return false
+    if (inputAttributes.mInputType and InputType.TYPE_CLASS_TEXT == 0) return false // undefined (e.g. terminal apps) type could work, but may not allow to track corrections
     val isEmailField = InputTypeUtils.isEmailVariation(inputAttributes.mInputType and InputType.TYPE_MASK_VARIATION)
     if (inputAttributes.mIsPasswordField || inputAttributes.mNoLearning || isEmailField) return false
     if (GestureDataGatheringSettings.isForbiddenForDataGathering(editorInfo.packageName, context)) return false

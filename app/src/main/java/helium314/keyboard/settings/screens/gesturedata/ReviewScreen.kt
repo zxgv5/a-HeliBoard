@@ -22,8 +22,11 @@ import androidx.compose.foundation.selection.selectable
 import androidx.compose.material3.BottomAppBar
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonColors
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.DateRangePicker
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -32,7 +35,6 @@ import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
@@ -49,6 +51,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -93,7 +96,6 @@ fun ReviewScreen(
     var filter by rememberSaveable(stateSaver = TextFieldValue.Saver) { mutableStateOf(TextFieldValue()) }
     var gestureDataInfos by remember { mutableStateOf(listOf<GestureDataInfo>()) }
     val wordcount = if (selected.isNotEmpty()) selected.size else gestureDataInfos.size
-    val useWideLayout = isWideScreen()
 
     // all that filtering stuff
     var sortByName: Boolean by rememberSaveable { mutableStateOf(false) }
@@ -114,7 +116,7 @@ fun ReviewScreen(
     }
     fun reloadGestureDataInfos() {
         // todo: if slow, do in background, keep all entries in memory, or try returning a cursor (then sorting needs to be done by db)
-        val infos = dao.filterInfos(
+        val infos = if (!includeActive && !includePassive) emptyList() else dao.filterInfos(
             filter.text.takeIf { it.isNotEmpty() },
             startDate,
             endDate,
@@ -145,8 +147,6 @@ fun ReviewScreen(
                                     stringResource(R.string.delete),
                                     Modifier.align(Alignment.CenterHorizontally).size(30.dp)
                                 )
-                                // todo: plurals, see https://stackoverflow.com/questions/41950952/how-to-use-android-quantity-strings-plurals
-                                //  make sure to keep existing translations alive
                                 Text(stringResource(R.string.gesture_data_words_selected, wordcount))
                             }
                         }
@@ -236,44 +236,41 @@ fun ReviewScreen(
                             )
                         }
                     },
+                    actions = {
+                        Box {
+                            var showMenu by remember { mutableStateOf(false) }
+                            IconButton(
+                                onClick = { showMenu = true }
+                            ) { Icon(painterResource(R.drawable.ic_arrow_left), "menu", Modifier.rotate(-90f)) }
+                            DropdownMenu(
+                                expanded = showMenu,
+                                onDismissRequest = { showMenu = false }
+                            ) {
+                                DropdownMenuItem(
+                                    text = { Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Checkbox(checked = includeActive, onCheckedChange = { includeActive = it })
+                                        Text("Show actively gathered data")
+                                    } },
+                                    onClick = { showMenu = false; includeActive = !includeActive }
+                                )
+                                DropdownMenuItem(
+                                    text = { Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Checkbox(checked = includePassive, onCheckedChange = { includePassive = it })
+                                        Text("Show passively gathered data")
+                                    } },
+                                    onClick = { showMenu = false; includePassive = !includePassive }
+                                )
+                                DropdownMenuItem(
+                                    text = { Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Checkbox(checked = includeExported, onCheckedChange = { includeExported = it })
+                                        Text("Include already shared data")
+                                    } },
+                                    onClick = { showMenu = false; includeExported = !includeExported }
+                                )
+                            }
+                        }
+                    }
                 )
-                // todo: this is ugly, rather use checkboxes or some other UI?
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
-                    Button(
-                        {
-                            includeActive = !includeActive
-                            if (!includePassive && !includeActive)
-                                includePassive = true
-                        },
-                        colors = buttonColors,
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Switch(checked = includeActive, onCheckedChange = { includeActive = it })
-                            Text("active")
-                        }
-                    }
-                    Button(
-                        {
-                            includePassive = !includePassive
-                            if (!includePassive && !includeActive)
-                                includeActive = true
-                        },
-                        colors = buttonColors,
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Switch(checked = includePassive, onCheckedChange = { includePassive = it })
-                            Text("passive")
-                        }
-                    }
-                    Button({ includeExported = !includeExported }, colors = buttonColors, modifier = Modifier.weight(1f)) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Switch(checked = includeExported, onCheckedChange = { includeExported = it })
-                            Text("previously exported")
-                        }
-                    }
-                }
                 var showDateRangePicker by remember { mutableStateOf(false) }
                 val df = DateFormat.getDateInstance(DateFormat.SHORT)
                 HorizontalDivider()
@@ -302,21 +299,10 @@ fun ReviewScreen(
             }
         }
 
-        if (useWideLayout) {
-            Row(Modifier.padding(innerPadding)) {
-                Box(Modifier.weight(0.6f)) {
-                    controlColumn()
-                }
-                Box(Modifier.weight(0.4f)) {
-                    dataColumn()
-                }
-            }
-        } else {
-            Column(Modifier.padding(innerPadding)) {
-                controlColumn()
-                HorizontalDivider()
-                dataColumn()
-            }
+        Column(Modifier.padding(innerPadding)) {
+            controlColumn()
+            HorizontalDivider()
+            dataColumn()
         }
         if (showExportDialog) {
             ThreeButtonAlertDialog(

@@ -374,24 +374,22 @@ private fun GestureDataEntry(gestureDataInfo: GestureDataInfo, selected: Boolean
         val ctx = LocalContext.current
         val jsonData = GestureDataDao.getInstance(ctx)?.getJsonData(listOf(gestureDataInfo.id))?.firstOrNull()
         val data = runCatching { jsonData?.let { Json.decodeFromString<GestureData>(it) } }.getOrNull()
-        ThreeButtonAlertDialog(
-            onDismissRequest = { showDetails = false },
-            onConfirmed = {},
-            onNeutral = { GestureDataGatheringSettings.addWordExclusion(ctx, gestureDataInfo.targetWord); showDetails = false },
-            neutralButtonText = "exclude word from passive gathering",
-            content = {
-                // todo
-                if (data == null) {
-                    Text("data not found, bug??")
-                } else {
-                    Column {
-                        Text("word: ${data.targetWord}")
-                        Text("suggestions: ${data.suggestions.map { it.word }}")
-                        Text("used dicts: ${data.dictionaries.map { "${it.type}:${it.language}" }}")
+        if (data != null)
+            ThreeButtonAlertDialog(
+                onDismissRequest = { showDetails = false },
+                cancelButtonText = stringResource(R.string.dialog_close),
+                onConfirmed = {},
+                confirmButtonText = null,
+                onNeutral = { GestureDataGatheringSettings.addWordExclusion(ctx, gestureDataInfo.targetWord); showDetails = false },
+                neutralButtonText = "exclude word from passive gathering",
+                title = { Text(gestureDataInfo.targetWord) },
+                content = {
+                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Text(stringResource(R.string.gesture_data_suggestions, data.suggestions.joinToString(", ") { it.word }))
+                        Text(stringResource(R.string.dictionary_settings_category) + ": " + data.dictionaries.joinToString(", ") { "${it.type}:${it.language}" })
                     }
                 }
-            }
-        )
+            )
     }
 }
 

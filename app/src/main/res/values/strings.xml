@@ -1116,6 +1116,9 @@ New dictionary:
     <!-- Toolbar key to enable / disable passive gesture data gathering
      string will probably be removed once data gathering is finished (end of 2026 latest) -->
     <string name="passive_gathering" tools:keep="@string/passive_gathering">Passive data gathering</string>
+    <!-- Text showing suggestions recorded for a specific gesture
+     string will probably be removed once data gathering is finished (end of 2026 latest) -->
+    <string name="gesture_data_suggestions">Suggestions: %s</string>
 
     <!-- new strings should go above the section for gesture data gathering -->
 </resources>

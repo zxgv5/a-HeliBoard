@@ -47,14 +47,20 @@ object PassiveGatheringCache {
 
     fun addWord(word: WordData) {
         if (KeyboardSwitcher.getInstance().keyboard.mId.mInternalAction?.code == KeyCode.INLINE_EMOJI_SEARCH_DONE) {
-            // todo: does not work, when starting inline emoji search the code is not yet set
-            //  maybe the only way is to clear the cache after starting inline search
             Log.i(TAG, "inline emoji search, not adding anything")
             return
         }
         Log.i(TAG, "adding ${word.usedWord}")
         // we cache the word before checking whether it can be saved because we don't have context
         cachedWords.add(word)
+        updateIcon()
+    }
+
+    // currently only used when entering inline emoji search
+    fun removeLast(word: String) {
+        if (cachedWords.last().usedWord != word) return
+            Log.i(TAG, "removing $word")
+        cachedWords.removeAt(cachedWords.lastIndex)
         updateIcon()
     }
 

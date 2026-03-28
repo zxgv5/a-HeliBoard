@@ -68,7 +68,6 @@ import helium314.keyboard.latin.utils.Theme
 import helium314.keyboard.latin.utils.previewDark
 import helium314.keyboard.settings.dialogs.ConfirmationDialog
 import helium314.keyboard.settings.dialogs.ThreeButtonAlertDialog
-import helium314.keyboard.settings.isWideScreen
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
 import java.text.DateFormat
@@ -381,7 +380,7 @@ private fun GestureDataEntry(gestureDataInfo: GestureDataInfo, selected: Boolean
                 onConfirmed = {},
                 confirmButtonText = null,
                 onNeutral = { GestureDataGatheringSettings.addWordExclusion(ctx, gestureDataInfo.targetWord); showDetails = false },
-                neutralButtonText = "exclude word from passive gathering",
+                neutralButtonText = stringResource(R.string.gesture_data_passive_exclude_words),
                 title = { Text(gestureDataInfo.targetWord) },
                 content = {
                     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {

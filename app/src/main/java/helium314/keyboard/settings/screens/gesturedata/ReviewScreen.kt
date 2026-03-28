@@ -354,7 +354,6 @@ private fun GestureDataEntry(
     val modifier = if (!anythingSelected)
         Modifier.combinedClickable(
             onClick = { showDetails = true },
-            // todo: swipe? could delete or add to exclusions (with undo bar, don't apply immediately)
             onLongClick = { onSelect(true) },
         )
     else Modifier.selectable(

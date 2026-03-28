@@ -74,7 +74,7 @@ class GestureDataDao(val db: Database) {
         ).use {
             val exclusions = GestureDataGatheringSettings.getWordExclusions(context)
             while (it.moveToNext()) {
-                yield(it.getString(0).filterExcludedWords(exclusions))
+                yield(it.getString(0).filterExcludedSuggestions(exclusions))
             }
         }
     }}
@@ -91,7 +91,7 @@ class GestureDataDao(val db: Database) {
         ).use {
             val exclusions = GestureDataGatheringSettings.getWordExclusions(context)
             while (it.moveToNext()) {
-                yield(it.getString(0).filterExcludedWords(exclusions))
+                yield(it.getString(0).filterExcludedSuggestions(exclusions))
             }
         }
     }}
@@ -128,6 +128,7 @@ class GestureDataDao(val db: Database) {
     }
 
     fun deletePassiveWords(words: Collection<String>) = synchronized(this) {
+        if (words.isEmpty()) return@synchronized
         val questions = "?,".repeat(words.size)
         db.writableDatabase.delete(
             TABLE,
@@ -193,7 +194,8 @@ class GestureDataDao(val db: Database) {
 
         // when excluding a word, it's only removed from db by first suggestion / target word
         // so we should clean the other suggestions here
-        private fun String.filterExcludedWords(exclusions: Collection<String>): String {
+        private fun String.filterExcludedSuggestions(exclusions: Collection<String>): String {
+            if (exclusions.isEmpty()) return this
             var result = this
             exclusions.forEach { excludedWord ->
                 if (!result.contains(excludedWord, true)) return@forEach

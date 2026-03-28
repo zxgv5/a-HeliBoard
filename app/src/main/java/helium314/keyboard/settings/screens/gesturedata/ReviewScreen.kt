@@ -371,7 +371,7 @@ private fun GestureDataEntry(gestureDataInfo: GestureDataInfo, selected: Boolean
     }
     if (showDetails) {
         val ctx = LocalContext.current
-        val jsonData = GestureDataDao.getInstance(ctx)?.getJsonData(listOf(gestureDataInfo.id))?.firstOrNull()
+        val jsonData = GestureDataDao.getInstance(ctx)?.getJsonData(listOf(gestureDataInfo.id), ctx)?.firstOrNull()
         val data = runCatching { jsonData?.let { Json.decodeFromString<GestureData>(it) } }.getOrNull()
         if (data != null)
             ThreeButtonAlertDialog(

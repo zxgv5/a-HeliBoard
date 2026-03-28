@@ -73,8 +73,6 @@ object GestureDataGatheringSettings {
     fun setWordExclusions(context: Context, list: Collection<String>) {
         excludedWords = null
         val json = Json.encodeToString(list)
-        // todo: when excluding a word, it should be removed from db, but also from suggestions of existing entries -> this will be awful
-        //  nah, better remove suggestions or filter on fetching the words
         context.prefs().edit { putString(PREF_WORD_EXCLUSIONS, json) }
         GlobalScope.launch { GestureDataDao.getInstance(context)?.deletePassiveWords(list) }
     }

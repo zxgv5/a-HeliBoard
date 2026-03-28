@@ -62,7 +62,7 @@ class GestureDataDao(val db: Database) {
         return result
     }
 
-    fun getJsonData(ids: List<Long>): Sequence<String> = synchronized(this) { sequence {
+    fun getJsonData(ids: List<Long>, context: Context): Sequence<String> = synchronized(this) { sequence {
         db.readableDatabase.query(
             TABLE,
             arrayOf(COLUMN_DATA),
@@ -72,13 +72,14 @@ class GestureDataDao(val db: Database) {
             null,
             null
         ).use {
+            val exclusions = GestureDataGatheringSettings.getWordExclusions(context)
             while (it.moveToNext()) {
-                yield(it.getString(0))
+                yield(it.getString(0).filterExcludedWords(exclusions))
             }
         }
     }}
 
-    fun getAllJsonData(): Sequence<String> = synchronized(this) { sequence {
+    fun getAllJsonData(context: Context): Sequence<String> = synchronized(this) { sequence {
         db.readableDatabase.query(
             TABLE,
             arrayOf(COLUMN_DATA),
@@ -88,8 +89,9 @@ class GestureDataDao(val db: Database) {
             null,
             null
         ).use {
+            val exclusions = GestureDataGatheringSettings.getWordExclusions(context)
             while (it.moveToNext()) {
-                yield(it.getString(0))
+                yield(it.getString(0).filterExcludedWords(exclusions))
             }
         }
     }}
@@ -126,11 +128,11 @@ class GestureDataDao(val db: Database) {
     }
 
     fun deletePassiveWords(words: Collection<String>) = synchronized(this) {
-        val wordsString = words.joinToString("','") { it.lowercase() }
+        val questions = "?,".repeat(words.size)
         db.writableDatabase.delete(
             TABLE,
-            "$COLUMN_SOURCE_ACTIVE <> 0 AND LOWER($COLUMN_WORD) in (?)",
-            arrayOf(wordsString)
+            "$COLUMN_SOURCE_ACTIVE = 0 AND LOWER($COLUMN_WORD) IN (${questions.take(questions.length - 1)})",
+            words.map { it.lowercase() }.toTypedArray()
         )
     }
 
@@ -187,6 +189,21 @@ class GestureDataDao(val db: Database) {
                     Log.e(TAG, "can't create ClipboardDao", e)
                 }
             return instance
+        }
+
+        // when excluding a word, it's only removed from db by first suggestion / target word
+        // so we should clean the other suggestions here
+        private fun String.filterExcludedWords(exclusions: Collection<String>): String {
+            var result = this
+            exclusions.forEach { excludedWord ->
+                if (!result.contains(excludedWord, true)) return@forEach
+                runCatching {
+                    val data = Json.decodeFromString<GestureData>(result)
+                    val newData = data.copy(suggestions = data.suggestions.filterNot { excludedWord.equals(it.word, true) })
+                    result = Json.encodeToString(newData)
+                }
+            }
+            return result
         }
     }
 }

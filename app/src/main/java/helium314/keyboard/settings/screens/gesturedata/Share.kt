@@ -171,7 +171,7 @@ private fun getData(ids: List<Long>): ManagedActivityResultLauncher<Intent, Acti
     return filePicker { uri ->
         val dao = GestureDataDao.getInstance(ctx) ?: return@filePicker
         ctx.getActivity()?.contentResolver?.openOutputStream(uri)?.use { os ->
-            writeOutputToZipStream(dao.getJsonData(ids), getGestureDataFileName(ctx), os)
+            writeOutputToZipStream(dao.getJsonData(ids, ctx), getGestureDataFileName(ctx), os)
         }
         dao.markAsExported(ids, ctx)
         gestureIdsBeingExported = null
@@ -184,7 +184,7 @@ private fun createZipFile(ctx: Context, ids: List<Long>) : File {
     val zipFile = getGestureZipFile(ctx)
     zipFile.delete()
     zipFile.outputStream().use { os ->
-        writeOutputToZipStream(dao.getJsonData(ids), getGestureDataFileName(ctx), os)
+        writeOutputToZipStream(dao.getJsonData(ids, ctx), getGestureDataFileName(ctx), os)
     }
     zippedDataPath = zipFile.absolutePath
     return zipFile

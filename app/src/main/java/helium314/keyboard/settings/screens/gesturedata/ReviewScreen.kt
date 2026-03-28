@@ -68,6 +68,7 @@ import helium314.keyboard.latin.utils.Theme
 import helium314.keyboard.latin.utils.previewDark
 import helium314.keyboard.settings.dialogs.ConfirmationDialog
 import helium314.keyboard.settings.dialogs.ThreeButtonAlertDialog
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
 import java.text.DateFormat
@@ -207,13 +208,21 @@ fun ReviewScreen(
             }
             LazyColumn(state = wordListState) {
                 items(gestureDataInfos, { it.id }) { item ->
-                    //   each entry consists of word, time, active/passive, whether it's already exported
-                    //    click shows raw data?
-                    //    long click selects
-                    GestureDataEntry(item, item.id in selected, selected.isNotEmpty()) { sel ->
-                        selected = if (!sel) selected.filterNot { it == item.id }
-                        else selected + item.id
-                    }
+                    GestureDataEntry(
+                        item,
+                        item.id in selected,
+                        selected.isNotEmpty(),
+                        { sel ->
+                            selected = if (!sel) selected.filterNot { it == item.id }
+                            else selected + item.id
+                        },
+                        {
+                            scope.launch {
+                                delay(20)
+                                reloadGestureDataInfos()
+                            }
+                        }
+                    )
                 }
             }
         }
@@ -334,7 +343,13 @@ fun ReviewScreen(
 }
 
 @Composable
-private fun GestureDataEntry(gestureDataInfo: GestureDataInfo, selected: Boolean, anythingSelected: Boolean, onSelect: (Boolean) -> Unit) {
+private fun GestureDataEntry(
+    gestureDataInfo: GestureDataInfo,
+    selected: Boolean,
+    anythingSelected: Boolean,
+    onSelect: (Boolean) -> Unit,
+    onExcludeWord: () -> Unit,
+) {
     var showDetails by remember { mutableStateOf(false) }
     val modifier = if (!anythingSelected)
         Modifier.combinedClickable(
@@ -379,7 +394,11 @@ private fun GestureDataEntry(gestureDataInfo: GestureDataInfo, selected: Boolean
                 cancelButtonText = stringResource(R.string.dialog_close),
                 onConfirmed = {},
                 confirmButtonText = null,
-                onNeutral = { GestureDataGatheringSettings.addWordExclusion(ctx, gestureDataInfo.targetWord); showDetails = false },
+                onNeutral = {
+                    GestureDataGatheringSettings.addWordExclusion(ctx, gestureDataInfo.targetWord)
+                    onExcludeWord()
+                    showDetails = false
+                },
                 neutralButtonText = stringResource(R.string.gesture_data_passive_exclude_words),
                 title = { Text(gestureDataInfo.targetWord) },
                 content = {

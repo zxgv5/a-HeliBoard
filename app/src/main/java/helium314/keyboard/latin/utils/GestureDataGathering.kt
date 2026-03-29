@@ -102,11 +102,22 @@ object PassiveGatheringCache {
         updateIcon()
     }
 
-    fun onEdit(word: String) {
+    fun onEditWord(word: String) {
         // this is pretty aggressive, because repeated backspace might remove different words
         // but better remove a few % of the words instead of having potentially bad data
         Log.i(TAG, "edit something in $word")
         cachedWords.removeAll { it.usedWord == word }
+        updateIcon()
+    }
+
+    fun onEditSelection(selection: CharSequence?) {
+        if (selection == null) return
+        // todo: what do we do now?
+        //  we may not have the complete word, and even when getting the touched word it does not include the selection
+        //  selection is a word -> probably unwanted -> remove
+        //  selection contains spaces -> user deletes/replaces multiple words, or parts -> should we relly remove all?
+        //  selection is part of a word -> probably a correction...
+        Log.i(TAG, "replace selection $selection")
         updateIcon()
     }
 

@@ -246,10 +246,12 @@ public final class InputLogic {
                 SystemClock.uptimeMillis(), mSpaceState,
                 getActualCapsMode(settingsValues, keyboardShiftMode));
         mConnection.beginBatchEdit();
+        if (GestureDataGatheringKt.usePassiveGathering && mConnection.hasSelection())
+            PassiveGatheringCache.INSTANCE.onEditSelection(mConnection.getSelectedText(0));
         if (mWordComposer.isComposingWord()) {
             if (mWordComposer.isCursorFrontOrMiddleOfComposingWord()) {
                 if (GestureDataGatheringKt.usePassiveGathering)
-                    PassiveGatheringCache.INSTANCE.onEdit(mWordComposer.getTypedWord());
+                    PassiveGatheringCache.INSTANCE.onEditWord(mWordComposer.getTypedWord());
 
                 // stop composing, otherwise the text will end up at the end of the current word
                 mConnection.finishComposingText();
@@ -478,8 +480,10 @@ public final class InputLogic {
         mWordBeingCorrectedByCursor = null;
         mJustRevertedACommit = false;
 
+        if (GestureDataGatheringKt.usePassiveGathering && mConnection.hasSelection())
+            PassiveGatheringCache.INSTANCE.onEditSelection(mConnection.getSelectedText(0));
         if (GestureDataGatheringKt.usePassiveGathering && mWordComposer.isComposingWord() && mWordComposer.isCursorFrontOrMiddleOfComposingWord())
-            PassiveGatheringCache.INSTANCE.onEdit(mWordComposer.getTypedWord());
+            PassiveGatheringCache.INSTANCE.onEditWord(mWordComposer.getTypedWord());
 
         final Event processedEvent = mWordComposer.processEvent(event);
         final InputTransaction inputTransaction = new InputTransaction(settingsValues,
@@ -541,6 +545,12 @@ public final class InputLogic {
         handler.showGesturePreviewAndSetSuggestions(SuggestedWords.getEmptyBatchInstance(), false);
         handler.cancelUpdateSuggestionStrip();
         ++mAutoCommitSequenceNumber;
+
+        if (GestureDataGatheringKt.usePassiveGathering && mConnection.hasSelection())
+            PassiveGatheringCache.INSTANCE.onEditSelection(mConnection.getSelectedText(0));
+        if (GestureDataGatheringKt.usePassiveGathering && mWordComposer.isComposingWord() && mWordComposer.isCursorFrontOrMiddleOfComposingWord())
+            PassiveGatheringCache.INSTANCE.onEditWord(mWordComposer.getTypedWord());
+
         mConnection.beginBatchEdit();
         if (mWordComposer.isComposingWord()) {
             if (mWordComposer.isCursorFrontOrMiddleOfComposingWord()) {

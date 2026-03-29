@@ -26,6 +26,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
 
 // functionality for gesture data gathering as part of the NLNet Project https://nlnet.nl/project/GestureTyping/
 // will be removed once the project is finished
@@ -282,8 +283,14 @@ data class GestureData(
     val activeMode: Boolean,
     val uuid: String?
 ) {
-    init {
-//        Log.i()
+    companion object {
+        // todo: make the checksums are really correct (nothing should happen with the change, but. better check)
+        fun GestureData.toJsonWithChecksum(): String {
+            val jsonString = Json.encodeToString(this.copy(uuid = null))
+            // if uuid in the resulting string is replaced with null, we should be able to reproduce it
+            val dataWithId = copy(uuid = ChecksumCalculator.checksum(jsonString.byteInputStream()))
+            return Json.encodeToString(dataWithId)
+        }
     }
 }
 

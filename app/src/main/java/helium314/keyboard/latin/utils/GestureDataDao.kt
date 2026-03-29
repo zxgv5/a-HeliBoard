@@ -4,24 +4,25 @@ package helium314.keyboard.latin.utils
 import android.content.ContentValues
 import android.content.Context
 import helium314.keyboard.latin.database.Database
+import helium314.keyboard.latin.utils.GestureData.Companion.toJsonWithChecksum
 import kotlinx.serialization.json.Json
 
 // functionality for gesture data gathering as part of the NLNet Project https://nlnet.nl/project/GestureTyping/
 // will be removed once the project is finished
 
 class GestureDataDao(val db: Database) {
-    fun add(data: GestureData, word: String?, timestamp: Long) = synchronized(this) {
+    fun add(data: GestureData, word: String?, timestamp: Long) {
         require(data.uuid == null)
-        val jsonString = Json.encodeToString(data)
-        // if uuid in the resulting string is replaced with null, we should be able to reproduce it
-        val dataWithId = data.copy(uuid = ChecksumCalculator.checksum(jsonString.byteInputStream()))
+        val jsonString = data.toJsonWithChecksum()
         val cv = ContentValues(3)
         cv.put(COLUMN_TIMESTAMP, timestamp)
-        cv.put(COLUMN_WORD, word) // we may store the "usedWord" here, because the user should be able to find what they entered
+        cv.put(COLUMN_WORD, word)
         if (data.activeMode)
             cv.put(COLUMN_SOURCE_ACTIVE, 1)
-        cv.put(COLUMN_DATA, Json.encodeToString(dataWithId))
-        db.writableDatabase.insert(TABLE, null, cv)
+        cv.put(COLUMN_DATA, jsonString)
+        synchronized(this) {
+            db.writableDatabase.insert(TABLE, null, cv)
+        }
     }
 
     fun filterInfos(
@@ -202,7 +203,7 @@ class GestureDataDao(val db: Database) {
                 runCatching {
                     val data = Json.decodeFromString<GestureData>(result)
                     val newData = data.copy(suggestions = data.suggestions.filterNot { excludedWord.equals(it.word, true) })
-                    result = Json.encodeToString(newData)
+                    result = newData.toJsonWithChecksum()
                 }
             }
             return result

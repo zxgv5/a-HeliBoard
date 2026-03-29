@@ -335,7 +335,7 @@ fun ReviewScreen(
                     reloadGestureDataInfos()
                 },
                 content = {
-                    Text("are you sure? will delete $wordcount words")
+                    Text(stringResource(R.string.gesture_data_delete_dialog_all, wordcount))
                 }
             )
         }

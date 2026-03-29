@@ -78,7 +78,7 @@ fun PassiveGatheringSettings() {
             .clickable { passiveGathering = !passiveGathering }
             .fillMaxWidth()
     ) {
-        Text(stringResource(R.string.gesture_data_passive_gathering))
+        Text(stringResource(R.string.gesture_data_passive_gathering_switch))
         Switch(passiveGathering, { passiveGathering = it; GestureDataGatheringSettings.setPassiveGatheringEnabled(ctx.prefs(), it) })
     }
     ButtonWithText(stringResource(R.string.gesture_data_passive_gathering_info), Modifier.fillMaxWidth()) { showInfoDialog = true }

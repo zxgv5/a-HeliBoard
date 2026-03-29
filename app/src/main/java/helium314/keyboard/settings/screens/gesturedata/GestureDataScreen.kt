@@ -109,6 +109,7 @@ import helium314.keyboard.settings.dialogs.ThreeButtonAlertDialog
 import helium314.keyboard.settings.initPreview
 import helium314.keyboard.settings.isWideScreen
 import helium314.keyboard.latin.utils.previewDark
+import helium314.keyboard.settings.WithSmallTitle
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -405,17 +406,19 @@ fun GestureDataScreen(
                     }
                     Spacer(Modifier.height(12.dp))
                     HorizontalDivider()
-                    ButtonWithText(
-                        stringResource(R.string.gesture_data_active_start),
-                        Modifier.fillMaxWidth(),
-                        System.currentTimeMillis() < END_DATE_EPOCH_MILLIS - TWO_WEEKS_IN_MILLIS // disabled when close to end
-                    ) {
-                        activeGathering = true
-                        lastData = null
-                        wordFromDict = null
-                    }
-                    ButtonWithText(stringResource(R.string.gesture_data_how_to_use), Modifier.fillMaxWidth()) {
-                        showActiveInfoDialog = true
+                    WithSmallTitle(stringResource(R.string.gesture_data_active)) {
+                        ButtonWithText(
+                            stringResource(R.string.gesture_data_active_start),
+                            Modifier.fillMaxWidth(),
+                            System.currentTimeMillis() < END_DATE_EPOCH_MILLIS - TWO_WEEKS_IN_MILLIS // disabled when close to end
+                        ) {
+                            activeGathering = true
+                            lastData = null
+                            wordFromDict = null
+                        }
+                        ButtonWithText(stringResource(R.string.gesture_data_how_to_use), Modifier.fillMaxWidth()) {
+                            showActiveInfoDialog = true
+                        }
                     }
                 }
             }
@@ -432,7 +435,9 @@ fun GestureDataScreen(
 
             if (!activeGathering) {
                 HorizontalDivider()
-                PassiveGatheringSettings()
+                WithSmallTitle(stringResource(R.string.passive_gathering)) {
+                    PassiveGatheringSettings()
+                }
                 Spacer(Modifier.height(12.dp))
                 // maybe move the review screen content in here if we have enough space (but landscape mode will be bad)
                 ButtonWithText(stringResource(R.string.gesture_data_review_screen_title), Modifier.fillMaxWidth()) {

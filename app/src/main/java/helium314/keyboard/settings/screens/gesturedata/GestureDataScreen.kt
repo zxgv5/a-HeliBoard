@@ -378,7 +378,7 @@ fun GestureDataScreen(
                 Spacer(Modifier.height(top))
             } else {
                 TopAppBar(
-                    title = { Text(stringResource(R.string.gesture_data_screen)) },
+                    title = { Text(stringResource(if (activeGathering) R.string.gesture_data_active else R.string.gesture_data_screen)) },
                     navigationIcon = {
                         IconButton(onClick = { if (activeGathering) activeGathering = false else onClickBack() }) {
                             Icon(
@@ -514,6 +514,7 @@ private fun BottomBar(hasWords: Boolean, onDeleted: () -> Unit) {
         var shareAll by remember { mutableStateOf<Boolean?>(null) }
         ThreeButtonAlertDialog(
             onDismissRequest = { showExportDialog = false },
+            title = { Text(stringResource(R.string.gesture_data_active)) },
             content = {
                 if (shareAll == null) {
                     Column {
@@ -547,6 +548,7 @@ private fun BottomBar(hasWords: Boolean, onDeleted: () -> Unit) {
         var showConfirmDialog by remember { mutableStateOf<String?>(null) }
         ThreeButtonAlertDialog(
             onDismissRequest = { showDeleteDialog = false },
+            title = { Text(stringResource(R.string.gesture_data_active)) },
             content = {
                 Column {
                     Text(stringResource(R.string.gesture_data_delete_dialog, nonExportedCount, exportedCount))

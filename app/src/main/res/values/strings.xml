@@ -1024,6 +1024,9 @@ New dictionary:
         If your gesture matches the word, the data is saved and the next word is displayed. Otherwise you can retry, skip the word, or confirm you gestured correctly.&lt;br/&gt;
         You can only use dictionaries that are built into the app or available in the &lt;a href=%s&gt;dictionaries repository&lt;/a&gt;, no other words will be used.
     </string>
+    <!-- Title for active gesture data gathering
+     string will probably be removed once data gathering is finished (end of 2026 latest) -->
+    <string name="gesture_data_active">Active gathering</string>
     <!-- Text for starting active gesture data gathering
      string will probably be removed once data gathering is finished (end of 2026 latest) -->
     <string name="gesture_data_active_start">Start active gathering</string>

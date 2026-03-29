@@ -9,9 +9,14 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.exclude
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.systemBars
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
@@ -192,35 +197,52 @@ fun PassiveGatheringSettings() {
         )
     }
     if (showExcludedWordsDialog) {
-        var ignoreWords by remember { mutableStateOf(GestureDataGatheringSettings.getWordExclusions(ctx)) }
-        var newWord by remember { mutableStateOf(TextFieldValue()) }
-        val scroll = rememberScrollState()
-        fun addWord() {
-            if (newWord.text.isNotBlank())
-                ignoreWords += newWord.text.trim()
-            newWord = TextFieldValue()
-        }
-        ThreeButtonAlertDialog(
-            onDismissRequest = { showExcludedWordsDialog = false },
-            content = { Column(Modifier.verticalScroll(scroll)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    TextField(
-                        value = newWord,
-                        onValueChange = { newWord = it},
-                        modifier = Modifier.weight(1f),
-                        singleLine = true,
-                        label = { Text(stringResource(R.string.user_dict_add_word_button)) },
-                        keyboardActions = KeyboardActions { addWord() }
-                    )
-                    IconButton(
-                        { addWord() },
-                        Modifier.weight(0.2f)) {
-                        Icon(painterResource(R.drawable.ic_plus), stringResource(R.string.add))
-                    }
-                }
-                CompositionLocalProvider(
-                    LocalTextStyle provides MaterialTheme.typography.bodyLarge
+        ExcludedWordsDialog { showExcludedWordsDialog = false }
+    }
+}
+
+@Composable fun ExcludedWordsDialog(onDismissRequest: () -> Unit) {
+    val ctx = LocalContext.current
+    var ignoreWords by remember { mutableStateOf(GestureDataGatheringSettings.getWordExclusions(ctx)) }
+    var newWord by remember { mutableStateOf(TextFieldValue()) }
+    var error by remember { mutableStateOf(true) }
+    LaunchedEffect(newWord) {
+        // we want a letter because it should be a word, and no quote so it doesn't interfere with the simple json contains check for excluded words
+        error = '"' in newWord.text || newWord.text.none { it.isLetter() }
+    }
+    val scroll = rememberScrollState()
+    fun addWord() {
+        val word = newWord.text
+        if (word.isNotBlank())
+            ignoreWords += word.trim()
+        newWord = TextFieldValue()
+    }
+    ThreeButtonAlertDialog(
+        onDismissRequest = onDismissRequest,
+        modifier = Modifier.windowInsetsPadding(WindowInsets.ime.exclude(WindowInsets.systemBars)),
+        content = { Column {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                TextField(
+                    value = newWord,
+                    onValueChange = { newWord = it },
+                    modifier = Modifier.weight(1f),
+                    isError = error,
+                    singleLine = true,
+                    label = { Text(stringResource(R.string.user_dict_add_word_button)) },
+                    keyboardActions = KeyboardActions { addWord() }
+                )
+                IconButton(
+                    { addWord() },
+                    Modifier.weight(0.2f)
                 ) {
+                    val tint = if (error) MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f) else MaterialTheme.colorScheme.onSurface
+                    Icon(painterResource(R.drawable.ic_plus), stringResource(R.string.add), tint = tint)
+                }
+            }
+            CompositionLocalProvider(
+                LocalTextStyle provides MaterialTheme.typography.bodyLarge
+            ) {
+                Column(Modifier.verticalScroll(scroll)) {
                     ignoreWords.map { word ->
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
@@ -232,13 +254,13 @@ fun PassiveGatheringSettings() {
                         }
                     }
                 }
-            } },
-            onConfirmed = {
-                addWord()
-                GestureDataGatheringSettings.setWordExclusions(ctx, ignoreWords)
-            },
-            confirmButtonText = stringResource(android.R.string.ok),
-            properties = DialogProperties(dismissOnClickOutside = false)
-        )
-    }
+            }
+        } },
+        onConfirmed = {
+            addWord()
+            GestureDataGatheringSettings.setWordExclusions(ctx, ignoreWords)
+        },
+        confirmButtonText = stringResource(android.R.string.ok),
+        properties = DialogProperties(dismissOnClickOutside = false)
+    )
 }
